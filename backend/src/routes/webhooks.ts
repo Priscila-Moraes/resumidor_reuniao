@@ -26,7 +26,7 @@ router.post('/fireflies', async (req: Request, res: Response) => {
     // 1. Encontrar o usuário no Supabase pelo email
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, openai_api_key')
+      .select('id, openai_api_key, fireflies_api_key')
       .eq('email', organizerEmail)
       .single();
 
@@ -40,8 +40,8 @@ router.post('/fireflies', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'User has no OpenAI API Key configured' });
     }
 
-    // 2. Buscar transcrição no Fireflies
-    const transcript = await fetchFirefliesTranscript(transcriptId);
+    // 2. Buscar transcrição no Fireflies (usa chave do perfil ou do env como fallback)
+    const transcript = await fetchFirefliesTranscript(transcriptId, profile.fireflies_api_key || undefined);
 
     // 3. Processar a transcrição com a IA (passando a chave do usuário)
     const analysis = await analyzeMeetingTranscript(transcript, profile.openai_api_key);
