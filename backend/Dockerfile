@@ -1,12 +1,23 @@
-FROM node:20-alpine
+# Stage 1: build
+FROM node:20-alpine AS build
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
-RUN npm run build || npx tsc
+RUN npm run build
+
+# Stage 2: runtime (sem devDependencies)
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
