@@ -9,15 +9,16 @@ const router = Router();
 router.post('/fireflies', async (req: Request, res: Response) => {
   try {
     const payload = req.body;
-    console.log('Webhook do Fireflies recebido:', payload);
+    console.log('Webhook do Fireflies recebido:', JSON.stringify(payload));
 
-    // O Fireflies precisa enviar algo para identificarmos o usuário.
-    // Pode ser o e-mail do organizador da reunião presente no payload.
-    // Vamos assumir que o payload tenha `organizer_email` e `transcript_id`.
-    const organizerEmail = payload?.organizer_email;
-    const transcriptId = payload?.transcript_id;
-    const meetingTitle = payload?.title || 'Reunião sem título';
-    const meetingDate = payload?.date || new Date().toISOString();
+    // Fireflies envia: { meetingId, eventType, transcript: { id, title, organizer_email, date } }
+    const transcriptId = payload?.meetingId || payload?.transcript?.id || payload?.transcript_id;
+    const organizerEmail = payload?.transcript?.organizer_email || payload?.organizer_email;
+    const meetingTitle = payload?.transcript?.title || payload?.title || 'Reunião sem título';
+    const rawDate = payload?.transcript?.date || payload?.date;
+    const meetingDate = rawDate
+      ? (typeof rawDate === 'number' ? new Date(rawDate).toISOString() : rawDate)
+      : new Date().toISOString();
 
     if (!organizerEmail || !transcriptId) {
       return res.status(400).json({ error: 'Missing organizer_email or transcript_id' });
