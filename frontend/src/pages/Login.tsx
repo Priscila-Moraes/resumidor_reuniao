@@ -1,14 +1,36 @@
-import React from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import './Login.css';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao autenticar. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -19,29 +41,51 @@ const Login: React.FC = () => {
           <h1>MeetMind AI</h1>
         </div>
         <p className="login-subtitle">Unlock the intelligence in every conversation.</p>
-        
-        <form onSubmit={handleLogin} className="login-form">
+
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label className="label">Email</label>
-            <input type="email" className="input-field" placeholder="your.email@company.com" required />
+            <input
+              type="email"
+              className="input-field"
+              placeholder="your.email@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
-          
+
           <div className="form-group">
             <label className="label">Password</label>
-            <input type="password" className="input-field" placeholder="••••••••••" required />
+            <input
+              type="password"
+              className="input-field"
+              placeholder="••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
-          
-          <button type="submit" className="btn-primary w-full">Sign In</button>
+
+          {error && <p className="error-text">{error}</p>}
+
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Sign In'}
+          </button>
         </form>
-        
-        <button className="btn-outline w-full mt-4">
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width={18} height={18} />
-          Login with Google
-        </button>
-        
+
         <div className="login-footer">
-          <a href="#" className="link">Forgot password?</a>
-          <p>Don't have an account? <a href="#" className="link font-semibold">Sign up.</a></p>
+          <p>
+            {isSignUp ? 'Já tem conta?' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              className="link font-semibold"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+            >
+              {isSignUp ? 'Entrar' : 'Sign up.'}
+            </button>
+          </p>
         </div>
       </div>
     </div>

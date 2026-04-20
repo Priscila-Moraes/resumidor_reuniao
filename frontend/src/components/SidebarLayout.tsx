@@ -1,12 +1,14 @@
-import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Activity, Calendar, Plug, Settings as SettingsIcon, Plus, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import './SidebarLayout.css';
 
 const SidebarLayout: React.FC = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
 
@@ -17,18 +19,18 @@ const SidebarLayout: React.FC = () => {
           <Activity className="sidebar-logo" size={24} />
           <h2>MeetingAI</h2>
         </div>
-        
+
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <Calendar size={20} />
             <span>My Meetings</span>
           </NavLink>
-          
+
           <NavLink to="/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <Plug size={20} />
             <span>Integrations</span>
           </NavLink>
-          
+
           <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <SettingsIcon size={20} />
             <span>Settings</span>
@@ -39,7 +41,7 @@ const SidebarLayout: React.FC = () => {
             <span>New Meeting</span>
           </button>
         </nav>
-        
+
         <div className="sidebar-footer">
           <button className="nav-item logout-btn" onClick={handleLogout}>
             <LogOut size={20} />
@@ -47,7 +49,7 @@ const SidebarLayout: React.FC = () => {
           </button>
         </div>
       </aside>
-      
+
       <main className="main-content">
         <Outlet />
       </main>
