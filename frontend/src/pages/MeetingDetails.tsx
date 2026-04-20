@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Share2, Search, Bell, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Share2, Search, Bell } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './MeetingDetails.css';
 
 const MeetingDetails: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  useParams();
   const [activeTab, setActiveTab] = useState<'transcription' | 'highlights'>('transcription');
 
   return (
