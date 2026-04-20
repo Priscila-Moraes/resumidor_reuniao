@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import webhookRoutes from './routes/webhooks';
+import meetingsRoutes from './routes/meetings';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Rotas
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/meetings', meetingsRoutes);
 
 // Rota de Healthcheck
 app.get('/health', (req, res) => {
