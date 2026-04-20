@@ -48,7 +48,7 @@ router.post('/fireflies', async (req: Request, res: Response) => {
     const analysis = await analyzeMeetingTranscript(transcript, profile.openai_api_key);
 
     // 4. Salvar tudo no Supabase
-    const { data: meeting, error: meetingError } = await supabase
+    const { error: meetingError } = await supabase
       .from('meetings')
       .insert({
         user_id: profile.id,
@@ -60,16 +60,14 @@ router.post('/fireflies', async (req: Request, res: Response) => {
         pontos_importantes: analysis.pontos_importantes,
         topicos_discutidos: analysis.topicos_discutidos,
         transcricao_bruta: transcript
-      })
-      .select()
-      .single();
+      });
 
     if (meetingError) {
       console.error('Erro ao salvar reunião no Supabase:', meetingError);
       return res.status(500).json({ error: 'Failed to save meeting' });
     }
 
-    return res.status(200).json({ success: true, meeting });
+    return res.status(200).json({ success: true });
 
   } catch (error: any) {
     console.error('Erro geral no webhook:', error.message);
