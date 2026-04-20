@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+ARG GIT_SHA
 COPY . .
 RUN npm run build
 
