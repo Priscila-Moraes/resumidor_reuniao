@@ -1,49 +1,96 @@
-import React from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import './Dashboard.css';
 
-const mockMeetings = [
-  { id: '1', date: 'Oct 26, 10:00 AM', title: 'Weekly Team Sync', summary: 'Discussed Q4 goals and new feature deployment timeline.', type: 'Team' },
-  { id: '2', date: 'Oct 25, 2:00 PM', title: 'Q3 Sales Review', summary: 'Analyzed sales performance and pipeline obstacles.', type: 'Sales' },
-  { id: '3', date: 'Oct 24, 11:00 AM', title: 'Project Kickoff: Alpha', summary: 'Defined project scope and key milestones.', type: 'Kickoff' },
-  { id: '4', date: 'Oct 23, 4:00 PM', title: 'Client Demo - Acme Corp', summary: 'Showcased platform capabilities and addressed feedback.', type: 'Kickoff' },
-  { id: '5', date: 'Oct 22, 9:00 AM', title: 'Design Sync', summary: 'Reviewed new dashboard mockups.', type: 'Team' },
-  { id: '6', date: 'Oct 21, 1:00 PM', title: 'Partnership Call', summary: 'Explored integration possibilities with DataCo.', type: 'Sales' },
-];
+interface Meeting {
+  id: string;
+  titulo: string;
+  data: string;
+  tipo_reuniao: string;
+  resumo: string;
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('id, titulo, data, tipo_reuniao, resumo')
+        .eq('user_id', user.id)
+        .order('data', { ascending: false });
+
+      if (!error && data) setMeetings(data);
+      setLoading(false);
+    };
+
+    fetchMeetings();
+  }, []);
+
+  const formatDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const filtered = meetings.filter((m) =>
+    m.titulo.toLowerCase().includes(search.toLowerCase()) ||
+    m.resumo?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="dashboard-container">
       <header className="top-bar">
         <div className="search-bar">
           <Search size={18} className="search-icon" />
-          <input type="text" placeholder="Search meetings..." className="search-input" />
-        </div>
-        <div className="user-profile">
-          <img src="https://i.pravatar.cc/150?img=11" alt="User" className="avatar" />
-          <ChevronDown size={16} />
+          <input
+            type="text"
+            placeholder="Buscar reuniões..."
+            className="search-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </header>
 
       <div className="dashboard-content">
-        <h1 className="page-title">Meeting Dashboard</h1>
-        
+        <h1 className="page-title">Minhas Reuniões</h1>
+
+        {loading && <p className="section-text">Carregando...</p>}
+
+        {!loading && filtered.length === 0 && (
+          <div className="empty-state">
+            <p>Nenhuma reunião encontrada.</p>
+            <p className="section-text">As reuniões aparecerão aqui após serem processadas pelo Fireflies.</p>
+          </div>
+        )}
+
         <div className="meetings-grid">
-          {mockMeetings.map((meeting) => (
-            <div 
-              key={meeting.id} 
+          {filtered.map((meeting) => (
+            <div
+              key={meeting.id}
               className="card meeting-card"
               onClick={() => navigate(`/meeting/${meeting.id}`)}
             >
               <div className="card-header">
-                <span className="meeting-date">{meeting.date}</span>
-                <span className={`tag ${meeting.type.toLowerCase()}`}>{meeting.type}</span>
+                <span className="meeting-date">{formatDate(meeting.data)}</span>
+                {meeting.tipo_reuniao && (
+                  <span className={`tag ${meeting.tipo_reuniao.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {meeting.tipo_reuniao}
+                  </span>
+                )}
               </div>
-              <h3 className="meeting-title">{meeting.title}</h3>
-              <p className="meeting-summary">{meeting.summary}</p>
+              <h3 className="meeting-title">{meeting.titulo}</h3>
+              <p className="meeting-summary">{meeting.resumo}</p>
             </div>
           ))}
         </div>

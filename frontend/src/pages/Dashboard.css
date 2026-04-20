@@ -98,3 +98,9 @@
   color: var(--text-secondary);
   line-height: 1.4;
 }
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}

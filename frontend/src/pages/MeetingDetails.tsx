@@ -1,143 +1,180 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Share2, Search, Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Share2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import './MeetingDetails.css';
+
+interface Meeting {
+  id: string;
+  titulo: string;
+  data: string;
+  tipo_reuniao: string;
+  objetivo: string;
+  resumo: string;
+  pontos_importantes: string[];
+  topicos_discutidos: string[];
+  transcricao_bruta: string;
+}
 
 const MeetingDetails: React.FC = () => {
   const navigate = useNavigate();
-  useParams();
+  const { id } = useParams<{ id: string }>();
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'transcription' | 'highlights'>('transcription');
+
+  useEffect(() => {
+    const fetchMeeting = async () => {
+      if (!id) return;
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!error && data) setMeeting(data);
+      setLoading(false);
+    };
+    fetchMeeting();
+  }, [id]);
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+
+  const parseTranscript = (raw: string) =>
+    raw.split('\n').filter(Boolean).map((line, i) => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) return { key: i, speaker: '', text: line };
+      return { key: i, speaker: line.slice(0, colonIdx).trim(), text: line.slice(colonIdx + 1).trim() };
+    });
+
+  if (loading) {
+    return (
+      <div className="details-container" style={{ padding: '2rem' }}>
+        <p>Carregando reunião...</p>
+      </div>
+    );
+  }
+
+  if (!meeting) {
+    return (
+      <div className="details-container" style={{ padding: '2rem' }}>
+        <button className="btn-outline back-btn" onClick={() => navigate('/dashboard')}>
+          <ArrowLeft size={16} /> Voltar
+        </button>
+        <p style={{ marginTop: '1rem' }}>Reunião não encontrada.</p>
+      </div>
+    );
+  }
+
+  const transcriptLines = meeting.transcricao_bruta ? parseTranscript(meeting.transcricao_bruta) : [];
 
   return (
     <div className="details-container">
       <header className="top-bar">
         <button className="btn-outline back-btn" onClick={() => navigate('/dashboard')}>
           <ArrowLeft size={16} />
-          Back to Dashboard
+          Voltar ao Dashboard
         </button>
-        <div className="header-actions">
-          <Search size={20} className="icon-btn" />
-          <Bell size={20} className="icon-btn" />
-          <div className="user-profile">
-            <img src="https://i.pravatar.cc/150?img=11" alt="User" className="avatar" />
-          </div>
-        </div>
       </header>
 
       <div className="details-header">
         <div>
-          <h1 className="meeting-title-large">Q3 Roadmap & Sprint Planning Sync</h1>
+          <h1 className="meeting-title-large">{meeting.titulo}</h1>
           <div className="meeting-meta">
-            <span>Oct 26, 2023 • 10:00 AM</span>
-            <span className="tag team ml-2">Product Sync</span>
+            <span>{formatDate(meeting.data)}</span>
+            {meeting.tipo_reuniao && (
+              <span className="tag team ml-2">{meeting.tipo_reuniao}</span>
+            )}
           </div>
         </div>
         <button className="btn-outline share-btn">
-          <Share2 size={16} />
-          Share
+          <Share2 size={16} /> Compartilhar
         </button>
       </div>
 
       <div className="details-content">
         <div className="main-column">
-          <div className="card mb-4">
-            <h3 className="section-title">Meeting Objective</h3>
-            <h4 className="subsection-title">Purpose</h4>
-            <p className="section-text">Finalize the Q3 product roadmap and agree on sprint commitments for the upcoming cycle.</p>
-          </div>
+          {meeting.objetivo && (
+            <div className="card mb-4">
+              <h3 className="section-title">Objetivo da Reunião</h3>
+              <p className="section-text">{meeting.objetivo}</p>
+            </div>
+          )}
 
           <div className="card mb-4">
-            <h3 className="section-title">Summary</h3>
-            <p className="section-text">
-              The team discussed the key features for the Q3 roadmap, focusing on user retention and platform scalability. Decisions were made to prioritize the new analytics dashboard and delay the social sharing integration. Sprint commitments were finalized, with initial tasks assigned for next week.
-            </p>
+            <h3 className="section-title">Resumo</h3>
+            <p className="section-text">{meeting.resumo}</p>
           </div>
 
           <div className="two-columns mb-4">
-            <div className="card">
-              <h3 className="section-title">Key Points & Decisions</h3>
-              <ul className="checklist">
-                <li>
-                  <input type="checkbox" checked readOnly />
-                  <span>Q3 Roadmap approved by stakeholders.</span>
-                </li>
-                <li>
-                  <input type="checkbox" checked readOnly />
-                  <span>Sprint 1 tasks assigned in Jira.</span>
-                </li>
-                <li>
-                  <input type="checkbox" checked readOnly />
-                  <span>Analytics dashboard prioritized.</span>
-                </li>
-                <li>
-                  <input type="checkbox" readOnly />
-                  <span>Social sharing feature postponed to Q4.</span>
-                </li>
-                <li>
-                  <input type="checkbox" checked readOnly />
-                  <span>Next sync scheduled for Nov 2.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="card">
-              <h3 className="section-title">Topics Discussed</h3>
-              <div className="word-cloud">
-                <span className="word w-large">Roadmap</span>
-                <span className="word w-medium">Sprint Planning</span>
-                <span className="word w-small">User Retention</span>
-                <span className="word w-large">Scalability</span>
-                <span className="word w-medium">Analytics Dashboard</span>
-                <span className="word w-small">Jira</span>
-                <span className="word w-small">Stakeholders</span>
-                <span className="word w-medium">Feature Prioritization</span>
-                <span className="word w-small">Social Sharing</span>
-                <span className="word w-small">Timelines</span>
+            {meeting.pontos_importantes?.length > 0 && (
+              <div className="card">
+                <h3 className="section-title">Pontos Importantes</h3>
+                <ul className="checklist">
+                  {meeting.pontos_importantes.map((ponto, i) => (
+                    <li key={i}>
+                      <input type="checkbox" checked readOnly />
+                      <span>{ponto}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
+
+            {meeting.topicos_discutidos?.length > 0 && (
+              <div className="card">
+                <h3 className="section-title">Tópicos Discutidos</h3>
+                <div className="word-cloud">
+                  {meeting.topicos_discutidos.map((topico, i) => (
+                    <span key={i} className={`word ${i % 3 === 0 ? 'w-large' : i % 3 === 1 ? 'w-medium' : 'w-small'}`}>
+                      {topico}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="sidebar-column card">
           <div className="tabs-header">
-            <h3 className="section-title m-0">Full Transcription</h3>
+            <h3 className="section-title m-0">Transcrição</h3>
             <div className="tabs-toggle">
-              <button 
+              <button
                 className={`tab-btn ${activeTab === 'transcription' ? 'active' : ''}`}
                 onClick={() => setActiveTab('transcription')}
               >
-                Transcription
+                Completa
               </button>
-              <button 
+              <button
                 className={`tab-btn ${activeTab === 'highlights' ? 'active' : ''}`}
                 onClick={() => setActiveTab('highlights')}
               >
-                Highlights
+                Destaques
               </button>
             </div>
           </div>
 
           <div className="transcription-content">
-            <div className="speech-bubble">
-              <span className="timestamp">10:00 AM | <span className="speaker">Sarah L. (PM)</span>:</span>
-              <p>Let's kick off the Q3 planning. I've shared the proposed roadmap.</p>
-            </div>
-            <div className="speech-bubble">
-              <span className="timestamp">10:02 AM | <span className="speaker">Mike T. (Eng Lead)</span>:</span>
-              <p>Thanks, Sarah. The focus on scalability makes sense. We'll need to allocate resources for the backend migration.</p>
-            </div>
-            <div className="speech-bubble">
-              <span className="timestamp">10:05 AM | <span className="speaker">David K. (Design)</span>:</span>
-              <p>I've updated the mockups for the analytics dashboard. It's ready for review.</p>
-            </div>
-            <div className="speech-bubble">
-              <span className="timestamp">10:08 AM | <span className="speaker">Sarah L. (PM)</span>:</span>
-              <p>Great, David. Let's move that to the top of the list.</p>
-            </div>
-            <div className="speech-bubble">
-              <span className="timestamp">10:15 AM | <span className="speaker">Lisa M. (Marketing)</span>:</span>
-              <p>Are we still targeting the social sharing feature for this quarter?</p>
-            </div>
+            {activeTab === 'transcription' && transcriptLines.map((line) => (
+              <div key={line.key} className="speech-bubble">
+                {line.speaker && (
+                  <span className="timestamp">
+                    <span className="speaker">{line.speaker}</span>:
+                  </span>
+                )}
+                <p>{line.text}</p>
+              </div>
+            ))}
+
+            {activeTab === 'highlights' && meeting.pontos_importantes?.map((ponto, i) => (
+              <div key={i} className="speech-bubble">
+                <p>{ponto}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
