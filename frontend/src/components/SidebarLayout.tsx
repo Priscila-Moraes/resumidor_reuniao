@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, Calendar, Plug, Settings as SettingsIcon, Plus, LogOut } from 'lucide-react';
+import { Activity, Calendar, Settings as SettingsIcon, Plus, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './SidebarLayout.css';
 
@@ -26,12 +26,7 @@ const SidebarLayout: React.FC = () => {
             <span>My Meetings</span>
           </NavLink>
 
-          <NavLink to="/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Plug size={20} />
-            <span>Integrations</span>
-          </NavLink>
-
-          <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+<NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <SettingsIcon size={20} />
             <span>Settings</span>
           </NavLink>
