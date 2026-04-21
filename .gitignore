@@ -68,3 +68,6 @@ dist/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Arquivos internos — não subir para o repositório
+backend/importante.md
