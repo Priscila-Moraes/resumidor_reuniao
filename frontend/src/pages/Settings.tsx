@@ -1,78 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Copy, Check, Shield, Plug } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import './Settings.css';
 
 const WEBHOOK_URL = 'https://n8n-backend.v6mtnf.easypanel.host/api/webhooks/fireflies';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const toast = useToast();
+
   const [openaiKey, setOpenaiKey] = useState('');
   const [firefliesKey, setFirefliesKey] = useState('');
   const [copied, setCopied] = useState(false);
-  const [openaiStatus, setOpenaiStatus] = useState<'idle' | 'loading' | 'saved' | 'error'>('idle');
-  const [firefliesStatus, setFirefliesStatus] = useState<'idle' | 'loading' | 'saved' | 'error'>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [openaiSaving, setOpenaiSaving] = useState(false);
+  const [firefliesSaving, setFirefliesSaving] = useState(false);
 
   useEffect(() => {
     let ignore = false;
 
     async function loadProfile() {
       if (!user) return;
-      
       try {
         const { data, error } = await supabase
           .from('profiles')
           .select('openai_api_key, fireflies_api_key')
           .eq('id', user.id)
           .single();
-
         if (ignore) return;
         if (error) throw error;
-        
         if (data) {
           setOpenaiKey(data.openai_api_key || '');
           setFirefliesKey(data.fireflies_api_key || '');
         }
-      } catch (err) {
-        console.error('Error fetching profile:', err);
+      } catch {
+        toast.error('Não foi possível carregar as configurações.');
       }
     }
 
     loadProfile();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [user]);
 
-  const saveKey = async (column: string, value: string, setStatus: React.Dispatch<React.SetStateAction<'idle' | 'loading' | 'saved' | 'error'>>) => {
+  const saveKey = async (
+    column: string,
+    value: string,
+    setSaving: (v: boolean) => void,
+    label: string,
+  ) => {
     if (!user) return;
-    
-    setStatus('loading');
-    setErrorMsg('');
-    
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ [column]: value })
         .eq('id', user.id);
-
       if (error) throw error;
-      
-      setStatus('saved');
-      setTimeout(() => setStatus('idle'), 3000);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao salvar a chave';
-      setStatus('error');
-      setErrorMsg(message);
+      toast.success(`${label} salva com sucesso!`);
+    } catch (err: any) {
+      toast.error(err.message || `Erro ao salvar ${label.toLowerCase()}`);
+    } finally {
+      setSaving(false);
     }
   };
 
   const copyWebhook = () => {
     navigator.clipboard.writeText(WEBHOOK_URL);
     setCopied(true);
+    toast.info('URL copiada para a área de transferência.');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -93,23 +89,22 @@ const Settings: React.FC = () => {
           </div>
           <p className="section-description">Configure sua chave de API para habilitar a análise de inteligência artificial.</p>
 
-          <form onSubmit={(e) => { e.preventDefault(); saveKey('openai_api_key', openaiKey, setOpenaiStatus); }}>
+          <form onSubmit={(e) => { e.preventDefault(); saveKey('openai_api_key', openaiKey, setOpenaiSaving, 'Chave OpenAI'); }}>
             <div className="form-group">
               <label className="label">Chave API OpenAI</label>
               <input
                 type="password"
                 className="input-field"
-                placeholder="••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+                placeholder="sk-••••••••••••••••••••••••••••••••••••••••••••••"
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 required
               />
               <p className="help-text">Sua chave é armazenada de forma segura (RLS) no banco de dados. Apenas você tem acesso.</p>
             </div>
-            {openaiStatus === 'error' && <p className="error-text">{errorMsg}</p>}
             <div className="button-container">
-              <button type="submit" className="btn-primary" disabled={openaiStatus === 'loading'}>
-                {openaiStatus === 'loading' ? 'Salvando...' : openaiStatus === 'saved' ? 'Chave Salva!' : 'Salvar Chave'}
+              <button type="submit" className="btn-primary" disabled={openaiSaving}>
+                {openaiSaving ? 'Salvando...' : 'Salvar Chave'}
               </button>
             </div>
           </form>
@@ -125,7 +120,7 @@ const Settings: React.FC = () => {
           </div>
           <p className="section-description">Configure sua chave do Fireflies.ai para buscar as transcrições das reuniões.</p>
 
-          <form onSubmit={(e) => { e.preventDefault(); saveKey('fireflies_api_key', firefliesKey, setFirefliesStatus); }}>
+          <form onSubmit={(e) => { e.preventDefault(); saveKey('fireflies_api_key', firefliesKey, setFirefliesSaving, 'Chave Fireflies'); }}>
             <div className="form-group">
               <label className="label">Chave API Fireflies</label>
               <input
@@ -138,10 +133,9 @@ const Settings: React.FC = () => {
               />
               <p className="help-text">Encontre sua chave em fireflies.ai → Configurações → API.</p>
             </div>
-            {firefliesStatus === 'error' && <p className="error-text">{errorMsg}</p>}
             <div className="button-container">
-              <button type="submit" className="btn-primary" disabled={firefliesStatus === 'loading'}>
-                {firefliesStatus === 'loading' ? 'Salvando...' : firefliesStatus === 'saved' ? 'Chave Salva!' : 'Salvar Chave'}
+              <button type="submit" className="btn-primary" disabled={firefliesSaving}>
+                {firefliesSaving ? 'Salvando...' : 'Salvar Chave'}
               </button>
             </div>
           </form>

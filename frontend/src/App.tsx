@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import ToastContainer from './components/Toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MeetingDetails from './pages/MeetingDetails';
@@ -34,9 +36,12 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+        <ToastContainer />
+      </ToastProvider>
     </AuthProvider>
   );
 }

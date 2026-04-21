@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Search, Zap, X, Clock, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 import './Dashboard.css';
 
 const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
@@ -16,6 +18,8 @@ interface Meeting {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
+
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -23,8 +27,8 @@ const Dashboard: React.FC = () => {
   const [showProcessForm, setShowProcessForm] = useState(false);
   const [transcriptId, setTranscriptId] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [processError, setProcessError] = useState('');
-  const [processSuccess, setProcessSuccess] = useState('');
+
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchMeetings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,8 +52,6 @@ const Dashboard: React.FC = () => {
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
-    setProcessError('');
-    setProcessSuccess('');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -67,22 +69,23 @@ const Dashboard: React.FC = () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao processar');
 
-      setProcessSuccess('Reunião processada com sucesso!');
+      toast.success('Reunião processada com sucesso!');
       setTranscriptId('');
       await fetchMeetings();
-      setTimeout(() => { setShowProcessForm(false); setProcessSuccess(''); }, 2000);
+      setTimeout(() => setShowProcessForm(false), 800);
     } catch (err: any) {
-      setProcessError(err.message);
+      toast.error(err.message || 'Erro ao processar reunião');
     } finally {
       setProcessing(false);
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (!confirm('Tem certeza que deseja excluir esta reunião?')) return;
-    await supabase.from('meetings').delete().eq('id', id);
-    setMeetings((prev) => prev.filter((m) => m.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await supabase.from('meetings').delete().eq('id', deleteTarget);
+    setMeetings((prev) => prev.filter((m) => m.id !== deleteTarget));
+    setDeleteTarget(null);
+    toast.success('Reunião excluída.');
   };
 
   const filtered = meetings.filter((m) =>
@@ -128,8 +131,6 @@ const Dashboard: React.FC = () => {
                 <X size={18} />
               </button>
             </div>
-            {processError && <p className="process-error">{processError}</p>}
-            {processSuccess && <p className="process-success">{processSuccess}</p>}
           </form>
         </div>
       )}
@@ -157,7 +158,7 @@ const Dashboard: React.FC = () => {
                 <div className="meeting-row-title">{meeting.titulo}</div>
                 <button
                   className="btn-delete"
-                  onClick={(e) => handleDelete(e, meeting.id)}
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
                   title="Excluir reunião"
                 >
                   <Trash2 size={15} />
@@ -179,6 +180,16 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Excluir reunião"
+        message="Tem certeza? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };
