@@ -74,11 +74,38 @@
   background-color: var(--bg-main);
 }
 
+.meeting-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.35rem;
+}
+
 .meeting-row-title {
   font-size: 0.975rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.35rem;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.meeting-row:hover .btn-delete {
+  opacity: 1;
+}
+
+.btn-delete:hover {
+  color: #ef4444;
 }
 
 .meeting-row-meta {

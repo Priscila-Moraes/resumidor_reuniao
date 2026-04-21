@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Zap, X, Clock } from 'lucide-react';
+import { Search, Zap, X, Clock, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import './Dashboard.css';
@@ -78,6 +78,13 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('Tem certeza que deseja excluir esta reunião?')) return;
+    await supabase.from('meetings').delete().eq('id', id);
+    setMeetings((prev) => prev.filter((m) => m.id !== id));
+  };
+
   const filtered = meetings.filter((m) =>
     m.titulo.toLowerCase().includes(search.toLowerCase()) ||
     m.resumo?.toLowerCase().includes(search.toLowerCase())
@@ -146,7 +153,16 @@ const Dashboard: React.FC = () => {
               className="meeting-row"
               onClick={() => navigate(`/meeting/${meeting.id}`)}
             >
-              <div className="meeting-row-title">{meeting.titulo}</div>
+              <div className="meeting-row-header">
+                <div className="meeting-row-title">{meeting.titulo}</div>
+                <button
+                  className="btn-delete"
+                  onClick={(e) => handleDelete(e, meeting.id)}
+                  title="Excluir reunião"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
               <div className="meeting-row-meta">
                 <Clock size={13} className="meta-icon" />
                 <span>{formatDate(meeting.data)}</span>
