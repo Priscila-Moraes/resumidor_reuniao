@@ -38,17 +38,17 @@ const Login: React.FC = () => {
       <div className="login-card">
         <div className="login-header">
           <Brain className="logo-icon" size={32} />
-          <h1>MeetMind AI</h1>
+          <h1>ReuniãoAI</h1>
         </div>
-        <p className="login-subtitle">Unlock the intelligence in every conversation.</p>
+        <p className="login-subtitle">Desbloqueie a inteligência em cada conversa.</p>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label className="label">Email</label>
+            <label className="label">E-mail</label>
             <input
               type="email"
               className="input-field"
-              placeholder="your.email@company.com"
+              placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="label">Password</label>
+            <label className="label">Senha</label>
             <input
               type="password"
               className="input-field"
@@ -70,20 +70,20 @@ const Login: React.FC = () => {
           {error && <p className="error-text">{error}</p>}
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Sign In'}
+            {loading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Entrar'}
           </button>
         </form>
 
         <div className="login-footer">
           <p>
-            {isSignUp ? 'Já tem conta?' : "Don't have an account?"}{' '}
+            {isSignUp ? 'Já tem conta?' : 'Não tem conta?'}{' '}
             <button
               type="button"
               className="link font-semibold"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
             >
-              {isSignUp ? 'Entrar' : 'Sign up.'}
+              {isSignUp ? 'Entrar' : 'Cadastre-se.'}
             </button>
           </p>
         </div>

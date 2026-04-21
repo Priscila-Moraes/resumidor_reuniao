@@ -79,7 +79,7 @@ const Settings: React.FC = () => {
   return (
     <div className="settings-container">
       <div className="settings-header">
-        <h1 className="page-title">Settings</h1>
+        <h1 className="page-title">Configurações</h1>
       </div>
 
       <div className="settings-content">
@@ -89,13 +89,13 @@ const Settings: React.FC = () => {
             <div className="icon-container">
               <Plug size={20} className="settings-icon" />
             </div>
-            <h3 className="section-title">OpenAI Integration</h3>
+            <h3 className="section-title">Integração OpenAI</h3>
           </div>
           <p className="section-description">Configure sua chave de API para habilitar a análise de inteligência artificial.</p>
 
           <form onSubmit={(e) => { e.preventDefault(); saveKey('openai_api_key', openaiKey, setOpenaiStatus); }}>
             <div className="form-group">
-              <label className="label">OpenAI API Key</label>
+              <label className="label">Chave API OpenAI</label>
               <input
                 type="password"
                 className="input-field"
@@ -121,13 +121,13 @@ const Settings: React.FC = () => {
             <div className="icon-container">
               <Plug size={20} className="settings-icon" />
             </div>
-            <h3 className="section-title">Fireflies Integration</h3>
+            <h3 className="section-title">Integração Fireflies</h3>
           </div>
           <p className="section-description">Configure sua chave do Fireflies.ai para buscar as transcrições das reuniões.</p>
 
           <form onSubmit={(e) => { e.preventDefault(); saveKey('fireflies_api_key', firefliesKey, setFirefliesStatus); }}>
             <div className="form-group">
-              <label className="label">Fireflies API Key</label>
+              <label className="label">Chave API Fireflies</label>
               <input
                 type="password"
                 className="input-field"
@@ -153,12 +153,12 @@ const Settings: React.FC = () => {
             <div className="icon-container">
               <Shield size={20} className="settings-icon" />
             </div>
-            <h3 className="section-title">Fireflies Webhook</h3>
+            <h3 className="section-title">Webhook Fireflies</h3>
           </div>
           <p className="section-description">Cole esta URL no painel do Fireflies.ai para sincronizar suas reuniões automaticamente.</p>
 
           <div className="form-group">
-            <label className="label">Endpoint</label>
+            <label className="label">URL do Endpoint</label>
             <div className="webhook-field">
               <input type="text" className="input-field readonly" value={WEBHOOK_URL} readOnly />
               <button type="button" className="btn-icon-only" onClick={copyWebhook} title="Copiar URL">

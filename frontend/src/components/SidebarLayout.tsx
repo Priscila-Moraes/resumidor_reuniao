@@ -17,30 +17,30 @@ const SidebarLayout: React.FC = () => {
       <aside className="sidebar">
         <div className="sidebar-header">
           <Activity className="sidebar-logo" size={24} />
-          <h2>MeetingAI</h2>
+          <h2>ReuniãoAI</h2>
         </div>
 
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <Calendar size={20} />
-            <span>My Meetings</span>
+            <span>Minhas Reuniões</span>
           </NavLink>
 
 <NavLink to="/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
             <SettingsIcon size={20} />
-            <span>Settings</span>
+            <span>Configurações</span>
           </NavLink>
 
           <button className="nav-btn-new mt-4">
             <Plus size={20} />
-            <span>New Meeting</span>
+            <span>Nova Reunião</span>
           </button>
         </nav>
 
         <div className="sidebar-footer">
           <button className="nav-item logout-btn" onClick={handleLogout}>
             <LogOut size={20} />
-            <span>Logout</span>
+            <span>Sair</span>
           </button>
         </div>
       </aside>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Zap, X } from 'lucide-react';
+import { Search, Zap, X, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import './Dashboard.css';
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
       )}
 
       <div className="dashboard-content">
-        <h1 className="page-title">Minhas Reuniões</h1>
+        <h1 className="page-title">Painel de Reuniões</h1>
 
         {loading && <p className="section-text">Carregando...</p>}
 
@@ -139,23 +139,26 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="meetings-grid">
+        <div className="meetings-list">
           {filtered.map((meeting) => (
             <div
               key={meeting.id}
-              className="card meeting-card"
+              className="meeting-row"
               onClick={() => navigate(`/meeting/${meeting.id}`)}
             >
-              <div className="card-header">
-                <span className="meeting-date">{formatDate(meeting.data)}</span>
+              <div className="meeting-row-title">{meeting.titulo}</div>
+              <div className="meeting-row-meta">
+                <Clock size={13} className="meta-icon" />
+                <span>{formatDate(meeting.data)}</span>
                 {meeting.tipo_reuniao && (
-                  <span className={`tag ${meeting.tipo_reuniao.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {meeting.tipo_reuniao}
-                  </span>
+                  <span className="meeting-tag">{meeting.tipo_reuniao}</span>
                 )}
               </div>
-              <h3 className="meeting-title">{meeting.titulo}</h3>
-              <p className="meeting-summary">{meeting.resumo}</p>
+              {meeting.resumo && (
+                <p className="meeting-row-summary">
+                  <span className="summary-label">Resumo IA:</span> {meeting.resumo}
+                </p>
+              )}
             </div>
           ))}
         </div>
