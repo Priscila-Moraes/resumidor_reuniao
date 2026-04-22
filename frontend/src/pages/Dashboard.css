@@ -131,6 +131,34 @@
   animation: spin 1s linear infinite;
 }
 
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.meeting-row:hover .row-actions {
+  opacity: 1;
+}
+
+.btn-reanalyze {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.btn-reanalyze:hover:not(:disabled) { color: var(--primary-color); }
+.btn-reanalyze:disabled { opacity: 0.5; cursor: default; }
+
 .btn-delete {
   background: none;
   border: none;
@@ -140,18 +168,10 @@
   border-radius: 4px;
   display: flex;
   align-items: center;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-  flex-shrink: 0;
+  transition: color 0.15s;
 }
 
-.meeting-row:hover .btn-delete {
-  opacity: 1;
-}
-
-.btn-delete:hover {
-  color: #ef4444;
-}
+.btn-delete:hover { color: #ef4444; }
 
 .meeting-row-meta {
   display: flex;
@@ -294,8 +314,8 @@
     flex: 1 1 100%;
   }
 
-  /* Mostrar o botão de deletar sempre no mobile (sem hover) */
-  .btn-delete {
+  /* Mostrar botões sempre no mobile (sem hover) */
+  .row-actions {
     opacity: 1;
   }
 

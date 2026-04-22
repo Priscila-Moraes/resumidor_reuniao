@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Zap, X, Clock, Trash2, Loader2 } from 'lucide-react';
+import { Search, Zap, X, Clock, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
   const [transcriptId, setTranscriptId] = useState('');
   const [processing, setProcessing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchMeetings = async () => {
@@ -110,6 +111,27 @@ const Dashboard: React.FC = () => {
       toast.error(err.message || 'Erro ao processar reunião');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleReprocess = async (e: React.MouseEvent, meetingId: string) => {
+    e.stopPropagation();
+    setReprocessingId(meetingId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada');
+      const res = await fetch(`${BACKEND_URL}/api/meetings/${meetingId}/reprocess`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao reprocessar');
+      toast.info('Refazendo análise em segundo plano...');
+      setMeetings((prev) => prev.map((m) => m.id === meetingId ? { ...m, status: 'processando' } : m));
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setReprocessingId(null);
     }
   };
 
@@ -192,13 +214,25 @@ const Dashboard: React.FC = () => {
                   <span className="meeting-row-title">{meeting.titulo}</span>
                   <StatusBadge status={meeting.status} />
                 </div>
-                <button
-                  className="btn-delete"
-                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
-                  title="Excluir reunião"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="row-actions">
+                  {meeting.status !== 'processando' && (
+                    <button
+                      className="btn-reanalyze"
+                      onClick={(e) => handleReprocess(e, meeting.id)}
+                      disabled={reprocessingId === meeting.id}
+                      title="Refazer análise da IA"
+                    >
+                      <RefreshCw size={14} className={reprocessingId === meeting.id ? 'status-spinner' : ''} />
+                    </button>
+                  )}
+                  <button
+                    className="btn-delete"
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
+                    title="Excluir reunião"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
               <div className="meeting-row-meta">
                 <Clock size={13} className="meta-icon" />
