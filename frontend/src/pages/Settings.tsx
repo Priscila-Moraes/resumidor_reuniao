@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Copy, Check, Shield, Plug } from 'lucide-react';
+import { Copy, Check, Shield, Plug, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import './Settings.css';
 
-const WEBHOOK_URL = 'https://n8n-backend.v6mtnf.easypanel.host/api/webhooks/fireflies';
+const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -13,9 +13,14 @@ const Settings: React.FC = () => {
 
   const [openaiKey, setOpenaiKey] = useState('');
   const [firefliesKey, setFirefliesKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
   const [copied, setCopied] = useState(false);
   const [openaiSaving, setOpenaiSaving] = useState(false);
   const [firefliesSaving, setFirefliesSaving] = useState(false);
+
+  const webhookUrl = webhookSecret
+    ? `${BACKEND_URL}/api/webhooks/fireflies/${webhookSecret}`
+    : '';
 
   useEffect(() => {
     let ignore = false;
@@ -25,7 +30,7 @@ const Settings: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('openai_api_key, fireflies_api_key')
+          .select('openai_api_key, fireflies_api_key, fireflies_webhook_secret')
           .eq('id', user.id)
           .single();
         if (ignore) return;
@@ -33,6 +38,7 @@ const Settings: React.FC = () => {
         if (data) {
           setOpenaiKey(data.openai_api_key || '');
           setFirefliesKey(data.fireflies_api_key || '');
+          setWebhookSecret(data.fireflies_webhook_secret || '');
         }
       } catch {
         toast.error('Não foi possível carregar as configurações.');
@@ -65,8 +71,25 @@ const Settings: React.FC = () => {
     }
   };
 
+  const regenerateSecret = async () => {
+    if (!user) return;
+    const newSecret = crypto.randomUUID();
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ fireflies_webhook_secret: newSecret })
+        .eq('id', user.id);
+      if (error) throw error;
+      setWebhookSecret(newSecret);
+      toast.success('URL do webhook regenerada. Atualize no Fireflies.');
+    } catch (err: any) {
+      toast.error('Erro ao regenerar webhook.');
+    }
+  };
+
   const copyWebhook = () => {
-    navigator.clipboard.writeText(WEBHOOK_URL);
+    if (!webhookUrl) return;
+    navigator.clipboard.writeText(webhookUrl);
     setCopied(true);
     toast.info('URL copiada para a área de transferência.');
     setTimeout(() => setCopied(false), 2000);
@@ -141,7 +164,7 @@ const Settings: React.FC = () => {
           </form>
         </div>
 
-        {/* Webhook */}
+        {/* Webhook — URL única por usuário */}
         <div className="card settings-card">
           <div className="settings-card-header">
             <div className="icon-container">
@@ -149,20 +172,32 @@ const Settings: React.FC = () => {
             </div>
             <h3 className="section-title">Webhook Fireflies</h3>
           </div>
-          <p className="section-description">Cole esta URL no painel do Fireflies.ai para sincronizar suas reuniões automaticamente.</p>
+          <p className="section-description">Cole esta URL exclusiva no painel do Fireflies.ai para sincronizar suas reuniões automaticamente.</p>
 
           <div className="form-group">
-            <label className="label">URL do Endpoint</label>
+            <label className="label">Sua URL exclusiva</label>
             <div className="webhook-field">
-              <input type="text" className="input-field readonly" value={WEBHOOK_URL} readOnly />
+              <input
+                type="text"
+                className="input-field readonly"
+                value={webhookUrl || 'Carregando...'}
+                readOnly
+              />
               <button type="button" className="btn-icon-only" onClick={copyWebhook} title="Copiar URL">
                 {copied ? <Check size={18} className="success-icon" /> : <Copy size={18} />}
               </button>
             </div>
           </div>
 
+          <div className="webhook-actions">
+            <button type="button" className="btn-secondary" onClick={regenerateSecret}>
+              <RefreshCw size={14} />
+              Regenerar URL
+            </button>
+          </div>
+
           <div className="alert-important">
-            <p><strong>Importante:</strong> Mantenha este URL em segredo. Qualquer pessoa com ele poderia injetar falsas reuniões no seu painel.</p>
+            <p><strong>Importante:</strong> Esta URL é exclusiva sua — não compartilhe. Se comprometida, use "Regenerar URL" e atualize no Fireflies.</p>
           </div>
         </div>
       </div>

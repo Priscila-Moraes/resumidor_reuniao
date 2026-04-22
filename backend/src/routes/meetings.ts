@@ -5,7 +5,6 @@ import { analyzeMeetingTranscript } from '../services/aiService';
 
 const router = Router();
 
-// Autentica o token e retorna o perfil do usuário
 async function getUserProfile(authHeader: string | undefined) {
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.split(' ')[1];
@@ -14,7 +13,7 @@ async function getUserProfile(authHeader: string | undefined) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, openai_api_key, fireflies_api_key')
+    .select('id, openai_api_key, fireflies_api_key, fireflies_webhook_secret')
     .eq('id', user.id)
     .single();
 
@@ -34,7 +33,6 @@ router.post('/process', async (req: Request, res: Response) => {
     if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
     if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
-    // Cria a reunião com status 'processando' e retorna imediatamente
     const { data: newMeeting, error: insertError } = await supabase
       .from('meetings')
       .insert({
@@ -42,6 +40,7 @@ router.post('/process', async (req: Request, res: Response) => {
         titulo: 'Processando...',
         data: new Date().toISOString(),
         status: 'processando',
+        fireflies_id: transcript_id,
       })
       .select('id')
       .single();
@@ -52,22 +51,28 @@ router.post('/process', async (req: Request, res: Response) => {
 
     res.status(202).json({ success: true, meeting_id: newMeeting.id });
 
-    // Processa em background
     (async () => {
       try {
-        const transcript = await fetchFirefliesTranscript(transcript_id, profile.fireflies_api_key || undefined);
-        const analysis = await analyzeMeetingTranscript(transcript, profile.openai_api_key);
+        const result = await fetchFirefliesTranscript(transcript_id, profile.fireflies_api_key || undefined);
+        const analysis = await analyzeMeetingTranscript(result.text, profile.openai_api_key);
 
         await supabase
           .from('meetings')
           .update({
-            titulo: analysis.tipo_reuniao || 'Reunião processada',
+            titulo: analysis.titulo || 'Reunião processada',
             tipo_reuniao: analysis.tipo_reuniao,
             objetivo: analysis.objetivo,
-            resumo: analysis.resumo,
-            pontos_importantes: analysis.pontos_importantes,
+            resumo_executivo: analysis.resumo_executivo,
             topicos_discutidos: analysis.topicos_discutidos,
-            transcricao_bruta: transcript,
+            decisoes: analysis.decisoes,
+            itens_acao: analysis.itens_acao,
+            pendencias: analysis.pendencias,
+            aproveitamento_nota: analysis.aproveitamento_nota,
+            aproveitamento_motivo: analysis.aproveitamento_motivo,
+            aproveitamento_criterios: analysis.aproveitamento_criterios,
+            transcript: result.transcript,
+            transcricao_bruta: result.text,
+            duration: result.duration,
             status: 'concluido',
           })
           .eq('id', newMeeting.id);
@@ -94,10 +99,9 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
     if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
     if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
-    // Busca a reunião verificando que pertence ao usuário
     const { data: meeting, error: fetchError } = await supabase
       .from('meetings')
-      .select('id, transcricao_bruta, status')
+      .select('id, transcricao_bruta, transcript, fireflies_id, status')
       .eq('id', id)
       .eq('user_id', profile.id)
       .single();
@@ -106,7 +110,7 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    if (!meeting.transcricao_bruta) {
+    if (!meeting.transcricao_bruta && (!meeting.transcript || !Object.keys(meeting.transcript).length)) {
       return res.status(400).json({ error: 'Sem transcrição disponível para reprocessar' });
     }
 
@@ -114,23 +118,35 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Reunião já está sendo processada' });
     }
 
-    // Marca como processando e retorna imediatamente
     await supabase.from('meetings').update({ status: 'processando' }).eq('id', id);
     res.status(202).json({ success: true });
 
-    // Reanalisa em background
     (async () => {
       try {
-        const analysis = await analyzeMeetingTranscript(meeting.transcricao_bruta, profile.openai_api_key);
+        // Usa transcrição existente (texto ou reconstrói do JSONB)
+        let transcriptText = meeting.transcricao_bruta || '';
+        if (!transcriptText && meeting.transcript?.sentences) {
+          transcriptText = meeting.transcript.sentences
+            .map((s: any) => `${s.speaker_name}: ${s.text}`)
+            .join('\n');
+        }
+
+        const analysis = await analyzeMeetingTranscript(transcriptText, profile.openai_api_key);
 
         await supabase
           .from('meetings')
           .update({
+            titulo: analysis.titulo || undefined,
             tipo_reuniao: analysis.tipo_reuniao,
             objetivo: analysis.objetivo,
-            resumo: analysis.resumo,
-            pontos_importantes: analysis.pontos_importantes,
+            resumo_executivo: analysis.resumo_executivo,
             topicos_discutidos: analysis.topicos_discutidos,
+            decisoes: analysis.decisoes,
+            itens_acao: analysis.itens_acao,
+            pendencias: analysis.pendencias,
+            aproveitamento_nota: analysis.aproveitamento_nota,
+            aproveitamento_motivo: analysis.aproveitamento_motivo,
+            aproveitamento_criterios: analysis.aproveitamento_criterios,
             status: 'concluido',
           })
           .eq('id', id);

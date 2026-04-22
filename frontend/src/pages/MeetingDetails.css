@@ -42,7 +42,6 @@
   transition: color 0.15s;
   margin-bottom: 0.25rem;
 }
-
 .btn-back:hover { color: var(--text-primary); }
 
 .details-title {
@@ -72,7 +71,8 @@
   letter-spacing: 0.03em;
 }
 
-.btn-share {
+.btn-share,
+.btn-action {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -88,8 +88,8 @@
   transition: background 0.15s;
   flex-shrink: 0;
 }
-
-.btn-share:hover { background: var(--bg-main); }
+.btn-share:hover,
+.btn-action:hover { background: var(--bg-main); }
 
 .btn-reprocess {
   display: flex;
@@ -106,19 +106,17 @@
   white-space: nowrap;
   transition: all 0.15s;
 }
-
 .btn-reprocess:hover:not(:disabled) {
   background: var(--bg-main);
   color: var(--primary-color);
   border-color: var(--primary-color);
 }
-
 .btn-reprocess:disabled { opacity: 0.6; cursor: default; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
 
-/* ── Body: duas colunas ──────────────────────────────────────── */
+/* ── Body ────────────────────────────────────────────────────── */
 .details-body {
   display: flex;
   flex: 1;
@@ -144,10 +142,17 @@
 }
 
 .analysis-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.9375rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.625rem;
+}
+
+.card-title-icon {
+  flex-shrink: 0;
 }
 
 .analysis-card-text {
@@ -156,13 +161,80 @@
   line-height: 1.65;
 }
 
+.decisoes-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
 .analysis-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-/* Decisões-Chave */
+/* Aproveitamento */
+.aproveitamento-card {
+  border-left: 3px solid var(--primary-color);
+}
+
+.aproveitamento-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.nota-badge {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid;
+  border-radius: 10px;
+  padding: 0.35rem 0.6rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+}
+
+.criterios-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.criterio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.criterio-ok {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.criterio-fail {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.criterio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Decisões */
 .decision-list {
   list-style: none;
   display: flex;
@@ -183,6 +255,88 @@
   color: #16a34a;
   flex-shrink: 0;
   margin-top: 0.1rem;
+}
+
+.pending-icon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Itens de ação */
+.action-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--bg-main);
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+
+.action-item-done {
+  opacity: 0.5;
+}
+
+.action-item-done .action-tarefa {
+  text-decoration: line-through;
+}
+
+.action-checkbox {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.05rem;
+  flex-shrink: 0;
+}
+
+.check-pending { color: #cbd5e1; }
+.check-done { color: #16a34a; }
+
+.action-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-tarefa {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 0.3rem;
+}
+
+.action-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.action-responsavel {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.action-prazo {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 /* Word cloud */
@@ -321,5 +475,14 @@
     border-left: none;
     border-top: 1px solid var(--border-color);
     height: 420px;
+  }
+
+  .aproveitamento-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .nota-badge {
+    font-size: 1.5rem;
   }
 }
