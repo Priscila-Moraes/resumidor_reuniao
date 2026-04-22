@@ -82,10 +82,53 @@
   margin-bottom: 0.35rem;
 }
 
+.meeting-row-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .meeting-row-title {
   font-size: 0.975rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.meeting-row-processing {
+  cursor: default;
+  opacity: 0.75;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-processing {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-spinner {
+  animation: spin 1s linear infinite;
 }
 
 .btn-delete {

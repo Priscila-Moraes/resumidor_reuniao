@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, Clock, Share2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Share2, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../context/ToastContext';
 import './MeetingDetails.css';
+
+const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
 
 interface Meeting {
   id: string;
@@ -14,6 +17,7 @@ interface Meeting {
   pontos_importantes: string[];
   topicos_discutidos: string[];
   transcricao_bruta: string;
+  status: string;
 }
 
 const MeetingDetails: React.FC = () => {
@@ -22,6 +26,49 @@ const MeetingDetails: React.FC = () => {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'completa' | 'destaques'>('completa');
+  const [reprocessing, setReprocessing] = useState(false);
+  const toast = useToast();
+
+  const handleReprocess = async () => {
+    if (!meeting) return;
+    setReprocessing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada');
+
+      const res = await fetch(`${BACKEND_URL}/api/meetings/${meeting.id}/reprocess`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao reprocessar');
+
+      toast.info('Reprocessando reunião em segundo plano...');
+      setMeeting((prev) => prev ? { ...prev, status: 'processando' } : prev);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setReprocessing(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = meeting?.titulo ?? 'ReuniãoAI';
+    const text = meeting?.resumo ? `${meeting.resumo.slice(0, 120)}…` : 'Veja o resumo desta reunião no ReuniãoAI.';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+      } catch {
+        // usuário cancelou — não faz nada
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.info('Link copiado para a área de transferência.');
+    }
+  };
 
   useEffect(() => {
     const fetchMeeting = async () => {
@@ -81,10 +128,18 @@ const MeetingDetails: React.FC = () => {
             )}
           </div>
         </div>
-        <button className="btn-share">
-          <Share2 size={16} />
-          Compartilhar
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {(meeting.status === 'erro' || meeting.status === 'concluido') && (
+            <button className="btn-reprocess" onClick={handleReprocess} disabled={reprocessing} title="Reprocessar com IA">
+              <RefreshCw size={15} className={reprocessing ? 'spin' : ''} />
+              {reprocessing ? 'Reprocessando...' : 'Reprocessar'}
+            </button>
+          )}
+          <button className="btn-share" onClick={handleShare}>
+            <Share2 size={16} />
+            Compartilhar
+          </button>
+        </div>
       </div>
 
       {/* Body: análise + transcrição */}

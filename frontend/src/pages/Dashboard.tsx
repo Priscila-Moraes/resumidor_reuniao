@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Zap, X, Clock, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Zap, X, Clock, Trash2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -14,7 +14,23 @@ interface Meeting {
   data: string;
   tipo_reuniao: string;
   resumo: string;
+  status: string;
 }
+
+const StatusBadge = ({ status }: { status: string }) => {
+  if (status === 'processando') {
+    return (
+      <span className="status-badge status-processing">
+        <Loader2 size={11} className="status-spinner" />
+        Processando...
+      </span>
+    );
+  }
+  if (status === 'erro') {
+    return <span className="status-badge status-error">Erro</span>;
+  }
+  return null;
+};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -23,26 +39,43 @@ const Dashboard: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-
   const [showProcessForm, setShowProcessForm] = useState(false);
   const [transcriptId, setTranscriptId] = useState('');
   const [processing, setProcessing] = useState(false);
-
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchMeetings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data, error } = await supabase
       .from('meetings')
-      .select('id, titulo, data, tipo_reuniao, resumo')
+      .select('id, titulo, data, tipo_reuniao, resumo, status')
       .eq('user_id', user.id)
       .order('data', { ascending: false });
     if (!error && data) setMeetings(data);
     setLoading(false);
   };
 
-  useEffect(() => { fetchMeetings(); }, []);
+  // Auto-refresh enquanto houver reuniões processando
+  useEffect(() => {
+    fetchMeetings();
+  }, []);
+
+  useEffect(() => {
+    const hasProcessing = meetings.some((m) => m.status === 'processando');
+
+    if (hasProcessing && !pollRef.current) {
+      pollRef.current = setInterval(fetchMeetings, 5000);
+    } else if (!hasProcessing && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [meetings]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('pt-BR', {
@@ -69,10 +102,10 @@ const Dashboard: React.FC = () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao processar');
 
-      toast.success('Reunião processada com sucesso!');
+      toast.success('Processando reunião em segundo plano...');
       setTranscriptId('');
+      setShowProcessForm(false);
       await fetchMeetings();
-      setTimeout(() => setShowProcessForm(false), 800);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao processar reunião');
     } finally {
@@ -125,7 +158,7 @@ const Dashboard: React.FC = () => {
                 required
               />
               <button type="submit" className="btn-primary" disabled={processing}>
-                {processing ? 'Processando...' : 'Processar'}
+                {processing ? 'Enviando...' : 'Processar'}
               </button>
               <button type="button" className="btn-close" onClick={() => setShowProcessForm(false)}>
                 <X size={18} />
@@ -151,11 +184,14 @@ const Dashboard: React.FC = () => {
           {filtered.map((meeting) => (
             <div
               key={meeting.id}
-              className="meeting-row"
-              onClick={() => navigate(`/meeting/${meeting.id}`)}
+              className={`meeting-row${meeting.status === 'processando' ? ' meeting-row-processing' : ''}`}
+              onClick={() => meeting.status !== 'processando' && navigate(`/meeting/${meeting.id}`)}
             >
               <div className="meeting-row-header">
-                <div className="meeting-row-title">{meeting.titulo}</div>
+                <div className="meeting-row-title-wrap">
+                  <span className="meeting-row-title">{meeting.titulo}</span>
+                  <StatusBadge status={meeting.status} />
+                </div>
                 <button
                   className="btn-delete"
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
@@ -171,7 +207,7 @@ const Dashboard: React.FC = () => {
                   <span className="meeting-tag">{meeting.tipo_reuniao}</span>
                 )}
               </div>
-              {meeting.resumo && (
+              {meeting.resumo && meeting.status === 'concluido' && (
                 <p className="meeting-row-summary">
                   <span className="summary-label">Resumo IA:</span> {meeting.resumo}
                 </p>

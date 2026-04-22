@@ -91,6 +91,33 @@
 
 .btn-share:hover { background: var(--bg-main); }
 
+.btn-reprocess {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.btn-reprocess:hover:not(:disabled) {
+  background: var(--bg-main);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-reprocess:disabled { opacity: 0.6; cursor: default; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
 /* ── Body: duas colunas ──────────────────────────────────────── */
 .details-body {
   display: flex;
