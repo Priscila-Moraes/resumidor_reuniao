@@ -111,6 +111,10 @@ const Settings: React.FC = () => {
             <h3 className="section-title">Integração OpenAI</h3>
           </div>
           <p className="section-description">Configure sua chave de API para habilitar a análise de inteligência artificial.</p>
+          <div className="model-badge">
+            <span className="model-badge-dot" />
+            Usando <strong>GPT-5 Mini</strong> para toda a análise de IA — resumos, decisões, itens de ação e avaliação de aproveitamento.
+          </div>
 
           <form onSubmit={(e) => { e.preventDefault(); saveKey('openai_api_key', openaiKey, setOpenaiSaving, 'Chave OpenAI'); }}>
             <div className="form-group">

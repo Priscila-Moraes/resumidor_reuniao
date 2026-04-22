@@ -161,6 +161,33 @@
   color: #9a3412;
 }
 
+.model-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  font-size: 0.85rem;
+  color: #1e40af;
+  margin-bottom: 1.25rem;
+}
+
+.model-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  flex-shrink: 0;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 .webhook-actions {
   margin-top: 0.75rem;
 }
