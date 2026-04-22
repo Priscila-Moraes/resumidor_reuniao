@@ -227,7 +227,9 @@ const MeetingDetails: React.FC = () => {
 
   const transcriptLines = meeting.transcricao_bruta ? parseTranscript(meeting.transcricao_bruta) : [];
   const nota = meeting.aproveitamento_nota ?? null;
-  const notaColor = nota === null ? '#94a3b8' : nota >= 80 ? '#16a34a' : nota >= 60 ? '#d97706' : '#dc2626';
+  // normaliza: aceita tanto escala 0-10 quanto 0-100 legado
+  const notaNorm = nota === null ? null : nota > 10 ? Math.round(nota / 10) : nota;
+  const notaColor = notaNorm === null ? '#94a3b8' : notaNorm >= 8 ? '#16a34a' : notaNorm >= 5 ? '#d97706' : '#dc2626';
 
   return (
     <div className="details-container">
@@ -287,9 +289,27 @@ const MeetingDetails: React.FC = () => {
                   )}
                 </div>
                 <div className="nota-badge" style={{ color: notaColor, borderColor: notaColor }}>
-                  {nota}<span style={{ fontSize: '0.75rem' }}>/100</span>
+                  {notaNorm}<span style={{ fontSize: '0.75rem' }}>/10</span>
                 </div>
               </div>
+
+              {/* Barra de progresso 0/10 */}
+              {notaNorm !== null && (
+                <div className="nota-bar-wrap">
+                  <div className="nota-bar-track">
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`nota-bar-segment ${i < notaNorm ? 'nota-bar-fill' : 'nota-bar-empty'}`}
+                        style={i < notaNorm ? { backgroundColor: notaColor } : undefined}
+                      />
+                    ))}
+                  </div>
+                  <span className="nota-bar-label" style={{ color: notaColor }}>
+                    {notaNorm}/10
+                  </span>
+                </div>
+              )}
 
               {meeting.aproveitamento_criterios && (
                 <div className="criterios-grid">

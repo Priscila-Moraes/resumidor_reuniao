@@ -199,6 +199,43 @@
   gap: 0.1rem;
 }
 
+/* Barra de aproveitamento 0/10 */
+.nota-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.nota-bar-track {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.nota-bar-segment {
+  height: 10px;
+  flex: 1;
+  border-radius: 3px;
+  transition: background-color 0.3s;
+}
+
+.nota-bar-fill {
+  /* cor definida inline via style */
+}
+
+.nota-bar-empty {
+  background-color: #e2e8f0;
+}
+
+.nota-bar-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
 .criterios-grid {
   display: flex;
   flex-wrap: wrap;

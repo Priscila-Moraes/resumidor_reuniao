@@ -45,8 +45,8 @@ Retorne EXATAMENTE este JSON:
     { "tarefa": "Descrição da tarefa", "responsavel": "Nome do responsável ou 'A definir'", "prazo": "Data ou 'A definir'" }
   ],
   "pendencias": ["Pendência ou questão não resolvida 1", "Pendência 2"],
-  "aproveitamento_nota": 75,
-  "aproveitamento_motivo": "Justificativa da nota de 0 a 100 em 1-2 frases",
+  "aproveitamento_nota": 7,
+  "aproveitamento_motivo": "Justificativa da nota em 1-2 frases explicando o porquê da avaliação",
   "aproveitamento_criterios": {
     "objetivos_claros": true,
     "decisoes_tomadas": true,
@@ -56,12 +56,14 @@ Retorne EXATAMENTE este JSON:
   }
 }
 
-Critérios para aproveitamento_nota (0-100):
-- objetivos_claros: a reunião teve pauta e objetivos definidos? (+20 pts)
-- decisoes_tomadas: foram tomadas decisões concretas? (+20 pts)
-- responsaveis_definidos: os itens de ação têm responsáveis? (+20 pts)
-- prazos_definidos: os itens de ação têm prazos? (+20 pts)
-- foco_mantido: a reunião manteve foco no objetivo? (+20 pts)
+Critérios para aproveitamento_nota (escala de 0 a 10):
+- Cada critério verdadeiro vale 2 pontos. Some os critérios atendidos:
+- objetivos_claros: a reunião teve pauta e objetivos definidos? (+2 pts)
+- decisoes_tomadas: foram tomadas decisões concretas? (+2 pts)
+- responsaveis_definidos: os itens de ação têm responsáveis nomeados? (+2 pts)
+- prazos_definidos: os itens de ação têm prazos definidos? (+2 pts)
+- foco_mantido: a reunião manteve foco no objetivo sem dispersão? (+2 pts)
+- aproveitamento_nota deve ser um número inteiro de 0 a 10 (ex: 0, 2, 4, 6, 8, 10)
 
 Transcrição:
 """
