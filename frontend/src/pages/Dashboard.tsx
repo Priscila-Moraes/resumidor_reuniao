@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send, Download } from 'lucide-react';
+import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -48,8 +48,6 @@ const Dashboard: React.FC = () => {
   const [filterPeriodo, setFilterPeriodo] = useState('Todos');
   const [showTipoMenu, setShowTipoMenu] = useState(false);
   const [showPeriodoMenu, setShowPeriodoMenu] = useState(false);
-  const [transcriptId, setTranscriptId] = useState('');
-  const [processing, setProcessing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -84,33 +82,6 @@ const Dashboard: React.FC = () => {
     new Date(iso).toLocaleDateString('pt-BR', {
       day: '2-digit', month: 'short', year: 'numeric',
     });
-
-  const handleProcess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!transcriptId.trim()) return;
-    setProcessing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
-      const res = await fetch(`${BACKEND_URL}/api/meetings/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ transcript_id: transcriptId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro ao processar');
-      toast.success('Processando reunião em segundo plano...');
-      setTranscriptId('');
-      await fetchMeetings();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao processar reunião');
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const handleReprocess = async (e: React.MouseEvent, meetingId: string) => {
     e.stopPropagation();
@@ -258,24 +229,6 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
-
-        {/* Processar por ID — sempre visível */}
-        <div className="process-card">
-          <p className="process-card-label">Processar reunião por ID do Fireflies</p>
-          <form onSubmit={handleProcess} className="process-form-row">
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Cole o Meeting ID do Fireflies aqui..."
-              value={transcriptId}
-              onChange={(e) => setTranscriptId(e.target.value)}
-            />
-            <button type="submit" className="btn-process" disabled={processing || !transcriptId.trim()}>
-              <Send size={15} />
-              {processing ? 'Enviando...' : 'Processar'}
-            </button>
-          </form>
         </div>
 
         {/* Lista */}
