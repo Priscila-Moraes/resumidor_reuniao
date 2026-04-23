@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send, CloudDownload } from 'lucide-react';
+import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -203,7 +203,7 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-title-row">
             <h1 className="page-title">Painel de Reuniões</h1>
             <button className="btn-sync" onClick={handleSyncFireflies} disabled={syncing} title="Importar reuniões recentes do Fireflies">
-              {syncing ? <Loader2 size={15} className="status-spinner" /> : <CloudDownload size={15} />}
+              {syncing ? <Loader2 size={15} className="status-spinner" /> : <Download size={15} />}
               {syncing ? 'Sincronizando...' : 'Sincronizar Fireflies'}
             </button>
           </div>
