@@ -11,7 +11,7 @@ export interface FirefliesTranscriptSummary {
 
 export const listFirefliesTranscripts = async (
   apiKey: string,
-  limit = 50,
+  limit = 200,
 ): Promise<FirefliesTranscriptSummary[]> => {
   const query = `
     query {
@@ -30,9 +30,12 @@ export const listFirefliesTranscripts = async (
       { query },
       { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } },
     );
-    return response.data?.data?.transcripts || [];
-  } catch (error) {
-    console.error('Error listing Fireflies transcripts', error);
+    const transcripts = response.data?.data?.transcripts;
+    const errors = response.data?.errors;
+    console.log('Fireflies list response — transcripts:', transcripts?.length ?? 'null', '| errors:', JSON.stringify(errors));
+    return transcripts || [];
+  } catch (error: any) {
+    console.error('Error listing Fireflies transcripts', error?.response?.data || error.message);
     throw new Error('Failed to list transcripts from Fireflies.');
   }
 };
