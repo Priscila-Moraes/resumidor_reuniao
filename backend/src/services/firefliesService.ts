@@ -33,6 +33,17 @@ export const listFirefliesTranscripts = async (
     const transcripts = response.data?.data?.transcripts;
     const errors = response.data?.errors;
     console.log('Fireflies list response — transcripts:', transcripts?.length ?? 'null', '| errors:', JSON.stringify(errors));
+
+    if (errors?.length) {
+      const err = errors[0];
+      if (err.code === 'too_many_requests') {
+        const retryAfter = err.extensions?.metadata?.retryAfter;
+        const retryDate = retryAfter ? new Date(retryAfter).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'amanhã';
+        throw new Error(`Limite de requisições do Fireflies atingido. Tente novamente após ${retryDate}.`);
+      }
+      throw new Error(err.message || 'Erro na API do Fireflies');
+    }
+
     return transcripts || [];
   } catch (error: any) {
     console.error('Error listing Fireflies transcripts', error?.response?.data || error.message);
