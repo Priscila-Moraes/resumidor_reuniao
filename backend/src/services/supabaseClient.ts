@@ -10,5 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ SUPABASE_URL and SUPABASE_ANON_KEY should be provided in .env');
 }
 
-// Inicializando com a chave Anônima (Anon Key) para respeitar as políticas de RLS
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Cria um cliente autenticado com o JWT do usuário (respeita RLS com auth.uid())
+export const supabaseAs = (token: string) =>
+  createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });

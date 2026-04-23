@@ -1,17 +1,21 @@
 import { Router, Request, Response } from 'express';
-import { supabase } from '../services/supabaseClient';
+import { supabase, supabaseAs } from '../services/supabaseClient';
 import { fetchFirefliesTranscript, listFirefliesTranscripts } from '../services/firefliesService';
 import { analyzeMeetingTranscript } from '../services/aiService';
 
 const router = Router();
 
-async function getUserProfile(authHeader: string | undefined) {
+function extractToken(authHeader: string | undefined): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
+  return authHeader.split(' ')[1];
+}
+
+async function getUserProfile(token: string) {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return null;
 
-  const { data: profile } = await supabase
+  const db = supabaseAs(token);
+  const { data: profile } = await db
     .from('profiles')
     .select('id, openai_api_key, fireflies_api_key, fireflies_webhook_secret')
     .eq('id', user.id)
@@ -22,15 +26,20 @@ async function getUserProfile(authHeader: string | undefined) {
 
 // POST /api/meetings/sync-fireflies — importa reuniões recentes da conta Fireflies
 router.post('/sync-fireflies', async (req: Request, res: Response) => {
-  const profile = await getUserProfile(req.headers.authorization);
+  const token = extractToken(req.headers.authorization);
+  if (!token) return res.status(401).json({ error: 'Token inválido ou expirado' });
+
+  const profile = await getUserProfile(token);
   if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
   if (!profile.fireflies_api_key) return res.status(400).json({ error: 'Configure sua chave do Fireflies nas configurações' });
   if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
+  const db = supabaseAs(token);
+
   try {
     const transcripts = await listFirefliesTranscripts(profile.fireflies_api_key);
 
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('meetings')
       .select('fireflies_id')
       .eq('user_id', profile.id)
@@ -52,13 +61,14 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
       duration: t.duration || null,
     }));
 
-    const { data: newMeetings, error: insertError } = await supabase
+    const { data: newMeetings, error: insertError } = await db
       .from('meetings')
       .insert(inserts)
       .select('id, fireflies_id, titulo');
 
     if (insertError || !newMeetings) {
-      return res.status(500).json({ error: 'Erro ao importar reuniões' });
+      console.error('Erro ao importar reuniões:', insertError);
+      return res.status(500).json({ error: insertError?.message || 'Erro ao importar reuniões' });
     }
 
     res.json({ success: true, imported: newMeetings.length });
@@ -70,7 +80,7 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
           const result = await fetchFirefliesTranscript(meeting.fireflies_id, profile.fireflies_api_key || undefined);
           const analysis = await analyzeMeetingTranscript(result.text, profile.openai_api_key);
 
-          await supabase
+          await db
             .from('meetings')
             .update({
               titulo: analysis.titulo || meeting.titulo,
@@ -94,7 +104,7 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
           console.log(`Sync: reunião ${meeting.id} processada.`);
         } catch (err: any) {
           console.error(`Sync: erro ao processar ${meeting.id}:`, err.message);
-          await supabase.from('meetings').update({ status: 'erro' }).eq('id', meeting.id);
+          await db.from('meetings').update({ status: 'erro' }).eq('id', meeting.id);
         }
       })();
     }
@@ -108,16 +118,18 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
 router.post('/process', async (req: Request, res: Response) => {
   try {
     const { transcript_id } = req.body;
+    if (!transcript_id) return res.status(400).json({ error: 'transcript_id é obrigatório' });
 
-    if (!transcript_id) {
-      return res.status(400).json({ error: 'transcript_id é obrigatório' });
-    }
+    const token = extractToken(req.headers.authorization);
+    if (!token) return res.status(401).json({ error: 'Token inválido ou expirado' });
 
-    const profile = await getUserProfile(req.headers.authorization);
+    const profile = await getUserProfile(token);
     if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
     if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
-    const { data: newMeeting, error: insertError } = await supabase
+    const db = supabaseAs(token);
+
+    const { data: newMeeting, error: insertError } = await db
       .from('meetings')
       .insert({
         user_id: profile.id,
@@ -140,7 +152,7 @@ router.post('/process', async (req: Request, res: Response) => {
         const result = await fetchFirefliesTranscript(transcript_id, profile.fireflies_api_key || undefined);
         const analysis = await analyzeMeetingTranscript(result.text, profile.openai_api_key);
 
-        await supabase
+        await db
           .from('meetings')
           .update({
             titulo: analysis.titulo || 'Reunião processada',
@@ -162,10 +174,7 @@ router.post('/process', async (req: Request, res: Response) => {
           .eq('id', newMeeting.id);
       } catch (err: any) {
         console.error('Erro ao processar transcrição:', err.message);
-        await supabase
-          .from('meetings')
-          .update({ status: 'erro' })
-          .eq('id', newMeeting.id);
+        await db.from('meetings').update({ status: 'erro' }).eq('id', newMeeting.id);
       }
     })();
 
@@ -179,20 +188,23 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const profile = await getUserProfile(req.headers.authorization);
+    const token = extractToken(req.headers.authorization);
+    if (!token) return res.status(401).json({ error: 'Token inválido ou expirado' });
+
+    const profile = await getUserProfile(token);
     if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
     if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
-    const { data: meeting, error: fetchError } = await supabase
+    const db = supabaseAs(token);
+
+    const { data: meeting, error: fetchError } = await db
       .from('meetings')
       .select('id, transcricao_bruta, transcript, fireflies_id, status')
       .eq('id', id)
       .eq('user_id', profile.id)
       .single();
 
-    if (fetchError || !meeting) {
-      return res.status(404).json({ error: 'Reunião não encontrada' });
-    }
+    if (fetchError || !meeting) return res.status(404).json({ error: 'Reunião não encontrada' });
 
     if (!meeting.transcricao_bruta && (!meeting.transcript || !Object.keys(meeting.transcript).length)) {
       return res.status(400).json({ error: 'Sem transcrição disponível para reprocessar' });
@@ -202,12 +214,11 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Reunião já está sendo processada' });
     }
 
-    await supabase.from('meetings').update({ status: 'processando' }).eq('id', id);
+    await db.from('meetings').update({ status: 'processando' }).eq('id', id);
     res.status(202).json({ success: true });
 
     (async () => {
       try {
-        // Usa transcrição existente (texto ou reconstrói do JSONB)
         let transcriptText = meeting.transcricao_bruta || '';
         if (!transcriptText && meeting.transcript?.sentences) {
           transcriptText = meeting.transcript.sentences
@@ -217,7 +228,7 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
 
         const analysis = await analyzeMeetingTranscript(transcriptText, profile.openai_api_key);
 
-        await supabase
+        await db
           .from('meetings')
           .update({
             titulo: analysis.titulo || undefined,
@@ -238,7 +249,7 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
         console.log(`Reunião ${id} reprocessada com sucesso.`);
       } catch (err: any) {
         console.error(`Erro ao reprocessar reunião ${id}:`, err.message);
-        await supabase.from('meetings').update({ status: 'erro' }).eq('id', id);
+        await db.from('meetings').update({ status: 'erro' }).eq('id', id);
       }
     })();
 
