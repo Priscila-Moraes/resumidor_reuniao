@@ -70,20 +70,28 @@ Transcrição:
 ${transcript}
 """`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-5-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'Você só responde com JSON válido. Não use blocos markdown como ```json.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.3,
-  });
+  const messages = [
+    {
+      role: 'system' as const,
+      content: 'Você só responde com JSON válido. Não use blocos markdown como ```json.',
+    },
+    {
+      role: 'user' as const,
+      content: prompt,
+    },
+  ];
+
+  let response;
+  try {
+    response = await openai.chat.completions.create({ model: 'gpt-5-mini', messages, temperature: 0.3 });
+  } catch (err: any) {
+    if (err?.status === 404 || err?.code === 'model_not_found' || err?.message?.includes('model')) {
+      console.warn('gpt-5-mini indisponível, usando gpt-4o-mini como fallback');
+      response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages, temperature: 0.3 });
+    } else {
+      throw err;
+    }
+  }
 
   const content: string = response.choices[0]?.message?.content || '{}';
 
