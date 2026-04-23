@@ -131,7 +131,8 @@ const Dashboard: React.FC = () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao sincronizar');
       if (json.imported === 0) {
-        toast.info('Nenhuma reunião nova encontrada no Fireflies.');
+        const dbg = json._debug ? ` (Fireflies: ${json._debug.fireflies}, banco: ${json._debug.existing})` : '';
+        toast.info(`Nenhuma reunião nova encontrada no Fireflies.${dbg}`);
       } else {
         toast.success(`${json.imported} reunião(ões) importada(s) e sendo processada(s)!`);
       }

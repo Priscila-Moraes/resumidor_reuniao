@@ -48,8 +48,12 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
     const existingIds = new Set((existing || []).map((m: any) => m.fireflies_id));
     const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
 
+    console.log(`Sync debug — Fireflies: ${transcripts.length} | DB existentes: ${existingIds.size} | Novos: ${newTranscripts.length}`);
+    console.log('IDs Fireflies:', transcripts.map((t) => t.id));
+    console.log('IDs no banco:', [...existingIds]);
+
     if (newTranscripts.length === 0) {
-      return res.json({ success: true, imported: 0 });
+      return res.json({ success: true, imported: 0, _debug: { fireflies: transcripts.length, existing: existingIds.size } });
     }
 
     const inserts = newTranscripts.map((t) => ({
