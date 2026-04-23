@@ -70,27 +70,22 @@ Transcrição:
 ${transcript}
 """`;
 
-  const response = await (openai as any).responses.create({
+  const response = await openai.chat.completions.create({
     model: 'gpt-5-mini',
-    input: [
+    messages: [
       {
-        role: 'user',
-        content: [{ type: 'input_text', text: 'Você só responde com JSON válido. Não use blocos markdown como ```json.' }],
+        role: 'system',
+        content: 'Você só responde com JSON válido. Não use blocos markdown como ```json.',
       },
       {
         role: 'user',
-        content: [{ type: 'input_text', text: prompt }],
+        content: prompt,
       },
     ],
-    reasoning: { effort: 'low', summary: 'auto' },
-    store: false,
+    temperature: 0.3,
   });
 
-  // Extrai o texto do output do assistente
-  const outputItems: any[] = response.output || [];
-  const assistantItem = outputItems.find((item: any) => item.role === 'assistant');
-  const content: string =
-    assistantItem?.content?.find((c: any) => c.type === 'output_text')?.text || '{}';
+  const content: string = response.choices[0]?.message?.content || '{}';
 
   try {
     return JSON.parse(content) as MeetingAnalysis;
