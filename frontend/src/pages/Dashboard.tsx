@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Zap, X, Clock, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -8,12 +8,16 @@ import './Dashboard.css';
 
 const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
 
+const TIPOS = ['Todos', 'Equipe', 'Vendas', 'Projeto', 'Planejamento', 'Feedback', 'Cliente', 'Outro'];
+
 interface Meeting {
   id: string;
   titulo: string;
   data: string;
   tipo_reuniao: string;
   resumo: string;
+  resumo_executivo: string;
+  duration: number;
   status: string;
 }
 
@@ -39,7 +43,8 @@ const Dashboard: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [showProcessForm, setShowProcessForm] = useState(false);
+  const [filterTipo, setFilterTipo] = useState('Todos');
+  const [showTipoMenu, setShowTipoMenu] = useState(false);
   const [transcriptId, setTranscriptId] = useState('');
   const [processing, setProcessing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -51,46 +56,38 @@ const Dashboard: React.FC = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('meetings')
-      .select('id, titulo, data, tipo_reuniao, resumo, status')
+      .select('id, titulo, data, tipo_reuniao, resumo, resumo_executivo, duration, status')
       .eq('user_id', user.id)
       .order('data', { ascending: false });
     if (!error && data) setMeetings(data);
     setLoading(false);
   };
 
-  // Auto-refresh enquanto houver reuniões processando
-  useEffect(() => {
-    fetchMeetings();
-  }, []);
+  useEffect(() => { fetchMeetings(); }, []);
 
   useEffect(() => {
     const hasProcessing = meetings.some((m) => m.status === 'processando');
-
     if (hasProcessing && !pollRef.current) {
       pollRef.current = setInterval(fetchMeetings, 5000);
     } else if (!hasProcessing && pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [meetings]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('pt-BR', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      day: '2-digit', month: 'short', year: 'numeric',
     });
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!transcriptId.trim()) return;
     setProcessing(true);
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão expirada. Faça login novamente.');
-
       const res = await fetch(`${BACKEND_URL}/api/meetings/process`, {
         method: 'POST',
         headers: {
@@ -99,13 +96,10 @@ const Dashboard: React.FC = () => {
         },
         body: JSON.stringify({ transcript_id: transcriptId }),
       });
-
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao processar');
-
       toast.success('Processando reunião em segundo plano...');
       setTranscriptId('');
-      setShowProcessForm(false);
       await fetchMeetings();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao processar reunião');
@@ -143,56 +137,76 @@ const Dashboard: React.FC = () => {
     toast.success('Reunião excluída.');
   };
 
-  const filtered = meetings.filter((m) =>
-    m.titulo.toLowerCase().includes(search.toLowerCase()) ||
-    m.resumo?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = meetings.filter((m) => {
+    const matchSearch = m.titulo.toLowerCase().includes(search.toLowerCase()) ||
+      (m.resumo_executivo || m.resumo || '').toLowerCase().includes(search.toLowerCase());
+    const matchTipo = filterTipo === 'Todos' || m.tipo_reuniao === filterTipo;
+    return matchSearch && matchTipo;
+  });
 
   return (
     <div className="dashboard-container">
-      <header className="top-bar">
-        <div className="search-bar">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Buscar reuniões..."
-            className="search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <button className="btn-process" onClick={() => setShowProcessForm(!showProcessForm)}>
-          <Zap size={16} />
-          Processar por ID
-        </button>
-      </header>
+      <div className="dashboard-content">
 
-      {showProcessForm && (
-        <div className="process-banner">
-          <form onSubmit={handleProcess} className="process-form">
-            <div className="process-form-row">
+        {/* Header com título + filtros */}
+        <div className="dashboard-header">
+          <h1 className="page-title">Painel de Reuniões</h1>
+          <div className="dashboard-filters">
+            <div className="search-bar">
+              <Search size={16} className="search-icon" />
               <input
                 type="text"
-                className="input-field"
-                placeholder="Cole o Transcript ID do Fireflies..."
-                value={transcriptId}
-                onChange={(e) => setTranscriptId(e.target.value)}
-                required
+                placeholder="Pesquisar reuniões..."
+                className="search-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
-              <button type="submit" className="btn-primary" disabled={processing}>
-                {processing ? 'Enviando...' : 'Processar'}
-              </button>
-              <button type="button" className="btn-close" onClick={() => setShowProcessForm(false)}>
-                <X size={18} />
-              </button>
             </div>
+            <button className="filter-btn">
+              <Calendar size={15} />
+              Data
+            </button>
+            <div className="filter-dropdown-wrap">
+              <button className="filter-btn" onClick={() => setShowTipoMenu(!showTipoMenu)}>
+                Tipo de Reunião
+                <ChevronDown size={14} />
+              </button>
+              {showTipoMenu && (
+                <div className="filter-menu">
+                  {TIPOS.map((tipo) => (
+                    <button
+                      key={tipo}
+                      className={`filter-menu-item${filterTipo === tipo ? ' active' : ''}`}
+                      onClick={() => { setFilterTipo(tipo); setShowTipoMenu(false); }}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Processar por ID — sempre visível */}
+        <div className="process-card">
+          <p className="process-card-label">Processar reunião por ID do Fireflies</p>
+          <form onSubmit={handleProcess} className="process-form-row">
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Cole o Meeting ID do Fireflies aqui..."
+              value={transcriptId}
+              onChange={(e) => setTranscriptId(e.target.value)}
+            />
+            <button type="submit" className="btn-process" disabled={processing || !transcriptId.trim()}>
+              <Send size={15} />
+              {processing ? 'Enviando...' : 'Processar'}
+            </button>
           </form>
         </div>
-      )}
 
-      <div className="dashboard-content">
-        <h1 className="page-title">Painel de Reuniões</h1>
-
+        {/* Lista */}
         {loading && <p className="section-text">Carregando...</p>}
 
         {!loading && filtered.length === 0 && (
@@ -203,51 +217,54 @@ const Dashboard: React.FC = () => {
         )}
 
         <div className="meetings-list">
-          {filtered.map((meeting) => (
-            <div
-              key={meeting.id}
-              className={`meeting-row${meeting.status === 'processando' ? ' meeting-row-processing' : ''}`}
-              onClick={() => meeting.status !== 'processando' && navigate(`/meeting/${meeting.id}`)}
-            >
-              <div className="meeting-row-header">
-                <div className="meeting-row-title-wrap">
-                  <span className="meeting-row-title">{meeting.titulo}</span>
-                  <StatusBadge status={meeting.status} />
-                </div>
-                <div className="row-actions">
-                  {meeting.status !== 'processando' && (
+          {filtered.map((meeting) => {
+            const resumoText = meeting.resumo_executivo || meeting.resumo || '';
+            return (
+              <div
+                key={meeting.id}
+                className={`meeting-row${meeting.status === 'processando' ? ' meeting-row-processing' : ''}`}
+                onClick={() => meeting.status !== 'processando' && navigate(`/meeting/${meeting.id}`)}
+              >
+                <div className="meeting-row-header">
+                  <div className="meeting-row-title-wrap">
+                    <span className="meeting-row-title">{meeting.titulo}</span>
+                    <StatusBadge status={meeting.status} />
+                  </div>
+                  <div className="row-actions">
+                    {meeting.status !== 'processando' && (
+                      <button
+                        className="btn-reanalyze"
+                        onClick={(e) => handleReprocess(e, meeting.id)}
+                        disabled={reprocessingId === meeting.id}
+                        title="Refazer análise da IA"
+                      >
+                        <RefreshCw size={15} className={reprocessingId === meeting.id ? 'status-spinner' : ''} />
+                      </button>
+                    )}
                     <button
-                      className="btn-reanalyze"
-                      onClick={(e) => handleReprocess(e, meeting.id)}
-                      disabled={reprocessingId === meeting.id}
-                      title="Refazer análise da IA"
+                      className="btn-delete"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
+                      title="Excluir reunião"
                     >
-                      <RefreshCw size={14} className={reprocessingId === meeting.id ? 'status-spinner' : ''} />
+                      <Trash2 size={15} />
                     </button>
-                  )}
-                  <button
-                    className="btn-delete"
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(meeting.id); }}
-                    title="Excluir reunião"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  </div>
                 </div>
-              </div>
-              <div className="meeting-row-meta">
-                <Clock size={13} className="meta-icon" />
-                <span>{formatDate(meeting.data)}</span>
-                {meeting.tipo_reuniao && (
-                  <span className="meeting-tag">{meeting.tipo_reuniao}</span>
+                <div className="meeting-row-meta">
+                  <Clock size={13} className="meta-icon" />
+                  <span>{formatDate(meeting.data)}{meeting.duration ? ` • ${meeting.duration}m` : ''}</span>
+                  {meeting.tipo_reuniao && (
+                    <span className="meeting-tag">{meeting.tipo_reuniao}</span>
+                  )}
+                </div>
+                {resumoText && meeting.status === 'concluido' && (
+                  <p className="meeting-row-summary">
+                    <span className="summary-label">Resumo da IA:</span> {resumoText}
+                  </p>
                 )}
               </div>
-              {meeting.resumo && meeting.status === 'concluido' && (
-                <p className="meeting-row-summary">
-                  <span className="summary-label">Resumo IA:</span> {meeting.resumo}
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
