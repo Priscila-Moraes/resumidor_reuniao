@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { supabase, supabaseAs } from '../services/supabaseClient';
 import { fetchFirefliesTranscript, listFirefliesTranscripts } from '../services/firefliesService';
 import { analyzeMeetingTranscript } from '../services/aiService';
+import OpenAI from 'openai';
 
 const router = Router();
 
@@ -23,6 +24,58 @@ async function getUserProfile(token: string) {
 
   return profile ?? null;
 }
+
+// GET /api/meetings/diagnose — testa conectividade com Fireflies e OpenAI
+router.get('/diagnose', async (req: Request, res: Response) => {
+  const token = extractToken(req.headers.authorization);
+  if (!token) return res.status(401).json({ error: 'Token inválido' });
+
+  const profile = await getUserProfile(token);
+  if (!profile) return res.status(401).json({ error: 'Usuário não encontrado' });
+
+  const result: Record<string, any> = {
+    fireflies_key_configured: !!profile.fireflies_api_key,
+    openai_key_configured: !!profile.openai_api_key,
+    fireflies: null,
+    openai: null,
+  };
+
+  // Testa Fireflies
+  if (profile.fireflies_api_key) {
+    try {
+      const transcripts = await listFirefliesTranscripts(profile.fireflies_api_key, 1);
+      result.fireflies = { ok: true, transcripts_found: transcripts.length };
+    } catch (err: any) {
+      result.fireflies = { ok: false, error: err.message };
+    }
+  }
+
+  // Testa OpenAI
+  if (profile.openai_api_key) {
+    const openai = new OpenAI({ apiKey: profile.openai_api_key });
+    try {
+      await openai.chat.completions.create({
+        model: 'gpt-5-mini',
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 5,
+      });
+      result.openai = { ok: true, model: 'gpt-5-mini' };
+    } catch (err: any) {
+      try {
+        await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 5,
+        });
+        result.openai = { ok: true, model: 'gpt-4o-mini (fallback)', gpt5_error: err.message };
+      } catch (err2: any) {
+        result.openai = { ok: false, error: err2.message, gpt5_error: err.message };
+      }
+    }
+  }
+
+  return res.json(result);
+});
 
 // POST /api/meetings/sync-fireflies — importa reuniões recentes da conta Fireflies
 router.post('/sync-fireflies', async (req: Request, res: Response) => {
