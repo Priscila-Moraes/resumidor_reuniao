@@ -255,64 +255,11 @@ const MeetingDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Body: análise + transcrição */}
+      {/* Conteúdo — coluna única com scroll */}
       <div className="details-body">
-
-        {/* Coluna esquerda — análise */}
         <div className="analysis-col">
 
           <h2 className="analysis-section-title">Análise da IA</h2>
-
-          {/* Aproveitamento */}
-          {nota !== null && (
-            <div className="analysis-card aproveitamento-card">
-              <div className="aproveitamento-header">
-                <div>
-                  <h3 className="analysis-card-title">
-                    <Star size={16} className="card-title-icon" />
-                    Aproveitamento da Reunião
-                  </h3>
-                  {meeting.aproveitamento_motivo && (
-                    <p className="analysis-card-text" style={{ marginTop: '0.25rem' }}>
-                      {meeting.aproveitamento_motivo}
-                    </p>
-                  )}
-                </div>
-                <div className="nota-badge" style={{ color: notaColor, borderColor: notaColor }}>
-                  {notaNorm}<span style={{ fontSize: '0.75rem' }}>/10</span>
-                </div>
-              </div>
-
-              {/* Barra de progresso 0/10 */}
-              {notaNorm !== null && (
-                <div className="nota-bar-wrap">
-                  <div className="nota-bar-track">
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <div
-                        key={i}
-                        className={`nota-bar-segment ${i < notaNorm ? 'nota-bar-fill' : 'nota-bar-empty'}`}
-                        style={i < notaNorm ? { backgroundColor: notaColor } : undefined}
-                      />
-                    ))}
-                  </div>
-                  <span className="nota-bar-label" style={{ color: notaColor }}>
-                    {notaNorm}/10
-                  </span>
-                </div>
-              )}
-
-              {meeting.aproveitamento_criterios && (
-                <div className="criterios-grid">
-                  {(Object.keys(criteriosLabels) as Array<keyof AproveitamentoCriterios>).map((key) => (
-                    <div key={key} className={`criterio-item ${meeting.aproveitamento_criterios[key] ? 'criterio-ok' : 'criterio-fail'}`}>
-                      <span className="criterio-dot" />
-                      {criteriosLabels[key]}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Objetivo */}
           {meeting.objetivo && (
@@ -337,8 +284,78 @@ const MeetingDetails: React.FC = () => {
               <ul className="decision-list">
                 {meeting.decisoes.split('\n').filter(Boolean).map((d, i) => (
                   <li key={i} className="decision-item">
-                    <CheckCircle2 size={17} className="decision-icon" />
+                    <CheckCircle2 size={18} className="decision-icon" />
                     <span>{d.replace(/^[•\-]\s*/, '')}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Aproveitamento */}
+          {notaNorm !== null && (
+            <div className="analysis-card">
+              <h3 className="analysis-card-title">Aproveitamento da Reunião</h3>
+              <div className="nota-bar-solid-wrap">
+                <div className="nota-bar-solid-track">
+                  <div
+                    className="nota-bar-solid-fill"
+                    style={{ width: `${notaNorm * 10}%`, backgroundColor: notaColor }}
+                  />
+                </div>
+                <span className="nota-bar-solid-label" style={{ color: notaColor }}>
+                  {notaNorm}/10
+                </span>
+              </div>
+              {meeting.aproveitamento_motivo && (
+                <p className="analysis-card-text" style={{ marginTop: '0.75rem' }}>
+                  {meeting.aproveitamento_motivo}
+                </p>
+              )}
+              {meeting.aproveitamento_criterios && (
+                <div className="criterios-grid" style={{ marginTop: '0.75rem' }}>
+                  {(Object.keys(criteriosLabels) as Array<keyof AproveitamentoCriterios>).map((key) => (
+                    <div key={key} className={`criterio-item ${meeting.aproveitamento_criterios[key] ? 'criterio-ok' : 'criterio-fail'}`}>
+                      <span className="criterio-dot" />
+                      {criteriosLabels[key]}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Itens de Ação */}
+          {meeting.itens_acao?.length > 0 && (
+            <div className="analysis-card">
+              <h3 className="analysis-card-title">Itens de Ação</h3>
+              <div className="action-items-list">
+                {meeting.itens_acao.map((item, i) => (
+                  <div key={i} className={`action-item ${checkedItems[i] ? 'action-item-done' : ''}`}
+                    onClick={() => toggleItem(i)}>
+                    <input
+                      type="checkbox"
+                      className="action-checkbox-sq"
+                      checked={!!checkedItems[i]}
+                      onChange={() => toggleItem(i)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span className="action-tarefa">{item.tarefa}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pendências */}
+          {meeting.pendencias?.length > 0 && (
+            <div className="analysis-card">
+              <h3 className="analysis-card-title">Pendências</h3>
+              <ul className="decision-list">
+                {meeting.pendencias.map((item, i) => (
+                  <li key={i} className="decision-item">
+                    <AlertCircle size={16} className="pending-icon" />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
@@ -359,102 +376,23 @@ const MeetingDetails: React.FC = () => {
             </div>
           )}
 
-          {/* Itens de Ação */}
-          {meeting.itens_acao?.length > 0 && (
+          {/* Transcrição completa — abaixo de tudo */}
+          {transcriptLines.length > 0 && (
             <div className="analysis-card">
-              <h3 className="analysis-card-title">
-                <ListChecks size={15} className="card-title-icon" style={{ color: '#2563eb' }} />
-                Itens de Ação
-              </h3>
-              <div className="action-items-list">
-                {meeting.itens_acao.map((item, i) => (
-                  <div key={i} className={`action-item ${checkedItems[i] ? 'action-item-done' : ''}`}>
-                    <button className="action-checkbox" onClick={() => toggleItem(i)} aria-label="Marcar como feito">
-                      <CheckCircle2 size={18} className={checkedItems[i] ? 'check-done' : 'check-pending'} />
-                    </button>
-                    <div className="action-item-content">
-                      <p className="action-tarefa">{item.tarefa}</p>
-                      <div className="action-meta">
-                        {item.responsavel && item.responsavel !== 'A definir' && (
-                          <span className="action-badge action-responsavel">{item.responsavel}</span>
-                        )}
-                        {item.prazo && item.prazo !== 'A definir' && (
-                          <span className="action-badge action-prazo">
-                            <Clock size={11} /> {item.prazo}
-                          </span>
-                        )}
-                      </div>
+              <h3 className="analysis-card-title">Transcrição Completa</h3>
+              <div className="transcript-list">
+                {transcriptLines.map((line) => (
+                  <div key={line.key} className="transcript-card">
+                    <div className="transcript-card-header">
+                      <span className="speaker">{line.speaker || 'Participante'}</span>
                     </div>
+                    <p className="speech-text">{line.text}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Pendências */}
-          {meeting.pendencias?.length > 0 && (
-            <div className="analysis-card">
-              <h3 className="analysis-card-title">
-                <AlertCircle size={15} className="card-title-icon" style={{ color: '#d97706' }} />
-                Pendências
-              </h3>
-              <ul className="decision-list">
-                {meeting.pendencias.map((item, i) => (
-                  <li key={i} className="decision-item">
-                    <AlertCircle size={15} className="pending-icon" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Coluna direita — transcrição */}
-        <div className="transcript-col">
-          <div className="transcript-header">
-            <h3 className="transcript-title">
-              <MessageSquare size={15} style={{ marginRight: '0.35rem', verticalAlign: 'middle' }} />
-              Transcrição
-            </h3>
-            <div className="tabs-toggle">
-              <button
-                className={`tab-btn${tab === 'completa' ? ' active' : ''}`}
-                onClick={() => setTab('completa')}
-              >
-                Completa
-              </button>
-              <button
-                className={`tab-btn${tab === 'destaques' ? ' active' : ''}`}
-                onClick={() => setTab('destaques')}
-              >
-                Destaques
-              </button>
-            </div>
-          </div>
-
-          <div className="transcript-scroll">
-            {tab === 'completa' && (
-              transcriptLines.length === 0
-                ? <p className="no-content">Nenhuma transcrição disponível.</p>
-                : transcriptLines.map((line) => (
-                    <div key={line.key} className="speech-bubble">
-                      {line.speaker && <p className="speaker">{line.speaker}</p>}
-                      <p className="speech-text">{line.text}</p>
-                    </div>
-                  ))
-            )}
-
-            {tab === 'destaques' && (
-              meeting.decisoes
-                ? meeting.decisoes.split('\n').filter(Boolean).map((item, i) => (
-                    <div key={i} className="speech-bubble">
-                      <p className="speech-text">{item.replace(/^[•\-]\s*/, '')}</p>
-                    </div>
-                  ))
-                : <p className="no-content">Nenhum destaque disponível.</p>
-            )}
-          </div>
         </div>
       </div>
     </div>
