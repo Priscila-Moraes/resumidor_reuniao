@@ -58,7 +58,7 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
       data: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
       status: 'processando',
       fireflies_id: t.id,
-      duration: t.duration || null,
+      duration: t.duration ? Math.round(t.duration) : null,
     }));
 
     const { data: newMeetings, error: insertError } = await db

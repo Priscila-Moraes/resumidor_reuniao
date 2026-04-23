@@ -110,7 +110,7 @@ export const fetchFirefliesTranscript = async (
       text,
       transcript: data as FirefliesTranscriptData,
       fireflies_id: data.id || transcriptId,
-      duration: data.duration || 0,
+      duration: data.duration ? Math.round(data.duration) : 0,
     };
   } catch (error) {
     console.error('Error fetching transcript from Fireflies', error);
