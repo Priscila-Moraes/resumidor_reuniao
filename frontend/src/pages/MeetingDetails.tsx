@@ -233,36 +233,24 @@ const MeetingDetails: React.FC = () => {
 
   return (
     <div className="details-container">
-      {/* Header */}
-      <div className="details-header">
-        <div className="details-header-left">
-          <button className="btn-back" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft size={16} /> Voltar
-          </button>
-          <h1 className="details-title">{meeting.titulo}</h1>
-          <div className="details-meta">
-            <Clock size={13} />
-            <span>{formatDate(meeting.data)}</span>
-            {meeting.duration > 0 && <span>{meeting.duration} min</span>}
-            {meeting.tipo_reuniao && (
-              <span className="meeting-tag">{meeting.tipo_reuniao}</span>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+
+      {/* Header escuro */}
+      <div className="details-header-dark">
+        <button className="btn-back-dark" onClick={() => navigate('/dashboard')}>
+          <ArrowLeft size={16} /> Voltar
+        </button>
+        <h2 className="details-header-title">Detalhes da Reunião</h2>
+        <div className="details-header-actions">
           {(meeting.status === 'erro' || meeting.status === 'concluido') && (
-            <button className="btn-reprocess" onClick={handleReprocess} disabled={reprocessing} title="Reprocessar com IA">
+            <button className="btn-header-action" onClick={handleReprocess} disabled={reprocessing} title="Reprocessar">
               <RefreshCw size={15} className={reprocessing ? 'spin' : ''} />
-              {reprocessing ? 'Reprocessando...' : 'Reprocessar'}
             </button>
           )}
-          <button className="btn-action" onClick={handleExportPDF} title="Exportar PDF">
-            <FileDown size={16} />
-            PDF
+          <button className="btn-header-action" onClick={handleExportPDF} title="Exportar PDF">
+            <FileDown size={15} />
           </button>
-          <button className="btn-share" onClick={handleShare}>
-            <Share2 size={16} />
-            Compartilhar
+          <button className="btn-header-action" onClick={handleShare} title="Compartilhar">
+            <Share2 size={15} />
           </button>
         </div>
       </div>
@@ -272,6 +260,8 @@ const MeetingDetails: React.FC = () => {
 
         {/* Coluna esquerda — análise */}
         <div className="analysis-col">
+
+          <h2 className="analysis-section-title">Análise da IA</h2>
 
           {/* Aproveitamento */}
           {nota !== null && (
@@ -340,34 +330,34 @@ const MeetingDetails: React.FC = () => {
             </div>
           )}
 
-          <div className="analysis-two-col">
-            {/* Decisões */}
-            {meeting.decisoes && (
-              <div className="analysis-card">
-                <h3 className="analysis-card-title">
-                  <CheckCircle2 size={15} className="card-title-icon" style={{ color: '#16a34a' }} />
-                  Decisões-Chave
-                </h3>
-                <div className="analysis-card-text decisoes-text" style={{ whiteSpace: 'pre-line' }}>
-                  {meeting.decisoes}
-                </div>
-              </div>
-            )}
+          {/* Decisões */}
+          {meeting.decisoes && (
+            <div className="analysis-card">
+              <h3 className="analysis-card-title">Decisões-Chave</h3>
+              <ul className="decision-list">
+                {meeting.decisoes.split('\n').filter(Boolean).map((d, i) => (
+                  <li key={i} className="decision-item">
+                    <CheckCircle2 size={17} className="decision-icon" />
+                    <span>{d.replace(/^[•\-]\s*/, '')}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            {/* Tópicos */}
-            {meeting.topicos_discutidos?.length > 0 && (
-              <div className="analysis-card">
-                <h3 className="analysis-card-title">Tópicos Discutidos</h3>
-                <div className="word-cloud">
-                  {meeting.topicos_discutidos.map((t, i) => (
-                    <span key={i} className={`word ${i % 3 === 0 ? 'w-large' : i % 3 === 1 ? 'w-medium' : 'w-small'}`}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
+          {/* Tópicos */}
+          {meeting.topicos_discutidos?.length > 0 && (
+            <div className="analysis-card">
+              <h3 className="analysis-card-title">Tópicos Discutidos</h3>
+              <div className="word-cloud">
+                {meeting.topicos_discutidos.map((t, i) => (
+                  <span key={i} className={`word ${i % 3 === 0 ? 'w-large' : i % 3 === 1 ? 'w-medium' : 'w-small'}`}>
+                    {t}
+                  </span>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Itens de Ação */}
           {meeting.itens_acao?.length > 0 && (
