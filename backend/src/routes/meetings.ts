@@ -128,6 +128,7 @@ router.post('/process', async (req: Request, res: Response) => {
 
     const profile = await getUserProfile(token);
     if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
+    if (!profile.fireflies_api_key) return res.status(400).json({ error: 'Configure sua chave do Fireflies nas configurações' });
     if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
 
     const db = supabaseAs(token);
@@ -176,7 +177,8 @@ router.post('/process', async (req: Request, res: Response) => {
           })
           .eq('id', newMeeting.id);
       } catch (err: any) {
-        console.error('Erro ao processar transcrição:', err.message);
+        const msg = err?.message || String(err);
+        console.error(`[process] ERRO ao processar transcript "${transcript_id}": ${msg}`);
         await db.from('meetings').update({ status: 'erro' }).eq('id', newMeeting.id);
       }
     })();

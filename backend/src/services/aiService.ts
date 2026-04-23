@@ -84,10 +84,19 @@ ${transcript}
   try {
     response = await openai.chat.completions.create({ model: 'gpt-5-mini', messages, temperature: 0.3 });
   } catch (err: any) {
-    if (err?.status === 404 || err?.code === 'model_not_found' || err?.message?.includes('model')) {
-      console.warn('gpt-5-mini indisponível, usando gpt-4o-mini como fallback');
+    const isModelError =
+      err?.status === 404 ||
+      err?.code === 'model_not_found' ||
+      err?.type === 'invalid_request_error' ||
+      err?.message?.toLowerCase().includes('model') ||
+      err?.message?.toLowerCase().includes('does not exist') ||
+      err?.message?.toLowerCase().includes('not found');
+
+    if (isModelError) {
+      console.warn('gpt-5-mini indisponível, usando gpt-4o-mini como fallback. Erro original:', err?.message);
       response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages, temperature: 0.3 });
     } else {
+      console.error('Erro inesperado na chamada OpenAI:', err?.status, err?.code, err?.message);
       throw err;
     }
   }

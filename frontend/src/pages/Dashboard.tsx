@@ -148,8 +148,17 @@ const Dashboard: React.FC = () => {
 
   const handleProcessById = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = transcriptId.trim();
-    if (!id) return;
+    let raw = transcriptId.trim();
+    if (!raw) return;
+
+    // Aceita URL completa do Fireflies: .../view/Titulo::ID ou .../view/ID
+    const urlMatch = raw.match(/::([^/?#]+)/);
+    if (urlMatch) raw = urlMatch[1];
+    else if (raw.includes('fireflies.ai')) {
+      const parts = raw.split('/');
+      raw = parts[parts.length - 1].split('?')[0];
+    }
+
     setProcessing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -160,7 +169,7 @@ const Dashboard: React.FC = () => {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ transcript_id: id }),
+        body: JSON.stringify({ transcript_id: raw }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro ao processar reunião');
