@@ -35,7 +35,6 @@ Analise a transcrição abaixo e extraia as informações em formato JSON estrit
 
 Retorne EXATAMENTE este JSON:
 {
-  "titulo": "Título descritivo da reunião (máx 60 chars)",
   "tipo_reuniao": "Um de: Equipe | Vendas | Projeto | Planejamento | Feedback | Cliente | Outro",
   "objetivo": "Uma frase objetiva descrevendo o propósito da reunião",
   "resumo_executivo": "2 a 3 parágrafos resumindo o contexto, discussões e resultados da reunião",

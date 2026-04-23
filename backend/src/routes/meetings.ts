@@ -83,7 +83,6 @@ router.post('/sync-fireflies', async (req: Request, res: Response) => {
           await db
             .from('meetings')
             .update({
-              titulo: analysis.titulo || meeting.titulo,
               tipo_reuniao: analysis.tipo_reuniao,
               objetivo: analysis.objetivo,
               resumo_executivo: analysis.resumo_executivo,
@@ -155,7 +154,7 @@ router.post('/process', async (req: Request, res: Response) => {
         await db
           .from('meetings')
           .update({
-            titulo: analysis.titulo || 'Reunião processada',
+            titulo: result.transcript.title || 'Reunião processada',
             tipo_reuniao: analysis.tipo_reuniao,
             objetivo: analysis.objetivo,
             resumo_executivo: analysis.resumo_executivo,
@@ -231,7 +230,6 @@ router.post('/:id/reprocess', async (req: Request, res: Response) => {
         await db
           .from('meetings')
           .update({
-            titulo: analysis.titulo || undefined,
             tipo_reuniao: analysis.tipo_reuniao,
             objetivo: analysis.objetivo,
             resumo_executivo: analysis.resumo_executivo,
