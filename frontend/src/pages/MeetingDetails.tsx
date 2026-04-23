@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  ArrowLeft, CheckCircle2, Clock, Share2, RefreshCw,
-  FileDown, Star, ListChecks, AlertCircle, MessageSquare,
+  ArrowLeft, CheckCircle2, Share2, RefreshCw,
+  FileDown, AlertCircle,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -56,7 +56,6 @@ const MeetingDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'completa' | 'destaques'>('completa');
   const [reprocessing, setReprocessing] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const toast = useToast();
