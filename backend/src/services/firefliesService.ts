@@ -46,8 +46,11 @@ export const listFirefliesTranscripts = async (
 
     return transcripts || [];
   } catch (error: any) {
+    if (error?.message?.includes('Limite de requisições') || error?.message?.includes('Erro na API')) {
+      throw error;
+    }
     console.error('Error listing Fireflies transcripts', error?.response?.data || error.message);
-    throw new Error('Failed to list transcripts from Fireflies.');
+    throw new Error('Falha ao conectar com o Fireflies. Verifique sua chave de API.');
   }
 };
 
