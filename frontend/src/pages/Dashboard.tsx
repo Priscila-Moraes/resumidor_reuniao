@@ -9,7 +9,7 @@ import './Dashboard.css';
 const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
 
 const TIPOS = ['Todos', 'Equipe', 'Vendas', 'Projeto', 'Planejamento', 'Feedback', 'Cliente', 'Outro'];
-const PERIODOS = ['Todos', 'Hoje', 'Esta semana', 'Este mês', 'Este ano'];
+const PERIODOS = ['Todos', 'Hoje', 'Ontem', 'Últimos 7 dias', 'Últimos 30 dias', 'Esta semana', 'Este mês', 'Este ano'];
 
 interface Meeting {
   id: string;
@@ -52,6 +52,8 @@ const Dashboard: React.FC = () => {
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const periodoRef = useRef<HTMLDivElement>(null);
+  const tipoRef = useRef<HTMLDivElement>(null);
 
   const fetchMeetings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -66,6 +68,19 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => { fetchMeetings(); }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (periodoRef.current && !periodoRef.current.contains(e.target as Node)) {
+        setShowPeriodoMenu(false);
+      }
+      if (tipoRef.current && !tipoRef.current.contains(e.target as Node)) {
+        setShowTipoMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const hasProcessing = meetings.some((m) => m.status === 'processando');
@@ -142,6 +157,23 @@ const Dashboard: React.FC = () => {
     if (filterPeriodo === 'Hoje') {
       return d.toDateString() === now.toDateString();
     }
+    if (filterPeriodo === 'Ontem') {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      return d.toDateString() === yesterday.toDateString();
+    }
+    if (filterPeriodo === 'Últimos 7 dias') {
+      const cutoff = new Date(now);
+      cutoff.setDate(now.getDate() - 7);
+      cutoff.setHours(0, 0, 0, 0);
+      return d >= cutoff;
+    }
+    if (filterPeriodo === 'Últimos 30 dias') {
+      const cutoff = new Date(now);
+      cutoff.setDate(now.getDate() - 30);
+      cutoff.setHours(0, 0, 0, 0);
+      return d >= cutoff;
+    }
     if (filterPeriodo === 'Esta semana') {
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
@@ -189,7 +221,7 @@ const Dashboard: React.FC = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="filter-dropdown-wrap">
+            <div className="filter-dropdown-wrap" ref={periodoRef}>
               <button className={`filter-btn${filterPeriodo !== 'Todos' ? ' filter-btn-active' : ''}`} onClick={() => { setShowPeriodoMenu(!showPeriodoMenu); setShowTipoMenu(false); }}>
                 <Calendar size={15} />
                 {filterPeriodo === 'Todos' ? 'Data' : filterPeriodo}
@@ -209,7 +241,7 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="filter-dropdown-wrap">
+            <div className="filter-dropdown-wrap" ref={tipoRef}>
               <button className="filter-btn" onClick={() => setShowTipoMenu(!showTipoMenu)}>
                 Tipo de Reunião
                 <ChevronDown size={14} />
