@@ -9,6 +9,7 @@ import './Dashboard.css';
 const BACKEND_URL = 'https://n8n-backend.v6mtnf.easypanel.host';
 
 const TIPOS = ['Todos', 'Equipe', 'Vendas', 'Projeto', 'Planejamento', 'Feedback', 'Cliente', 'Outro'];
+const PERIODOS = ['Todos', 'Hoje', 'Esta semana', 'Este mês', 'Este ano'];
 
 interface Meeting {
   id: string;
@@ -44,7 +45,9 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('Todos');
+  const [filterPeriodo, setFilterPeriodo] = useState('Todos');
   const [showTipoMenu, setShowTipoMenu] = useState(false);
+  const [showPeriodoMenu, setShowPeriodoMenu] = useState(false);
   const [transcriptId, setTranscriptId] = useState('');
   const [processing, setProcessing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -137,11 +140,33 @@ const Dashboard: React.FC = () => {
     toast.success('Reunião excluída.');
   };
 
+  const isInPeriodo = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    if (filterPeriodo === 'Hoje') {
+      return d.toDateString() === now.toDateString();
+    }
+    if (filterPeriodo === 'Esta semana') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      return d >= startOfWeek;
+    }
+    if (filterPeriodo === 'Este mês') {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    if (filterPeriodo === 'Este ano') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  };
+
   const filtered = meetings.filter((m) => {
     const matchSearch = m.titulo.toLowerCase().includes(search.toLowerCase()) ||
       (m.resumo_executivo || m.resumo || '').toLowerCase().includes(search.toLowerCase());
     const matchTipo = filterTipo === 'Todos' || m.tipo_reuniao === filterTipo;
-    return matchSearch && matchTipo;
+    const matchPeriodo = isInPeriodo(m.data);
+    return matchSearch && matchTipo && matchPeriodo;
   });
 
   return (
@@ -162,10 +187,26 @@ const Dashboard: React.FC = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="filter-btn">
-              <Calendar size={15} />
-              Data
-            </button>
+            <div className="filter-dropdown-wrap">
+              <button className={`filter-btn${filterPeriodo !== 'Todos' ? ' filter-btn-active' : ''}`} onClick={() => { setShowPeriodoMenu(!showPeriodoMenu); setShowTipoMenu(false); }}>
+                <Calendar size={15} />
+                {filterPeriodo === 'Todos' ? 'Data' : filterPeriodo}
+                <ChevronDown size={14} />
+              </button>
+              {showPeriodoMenu && (
+                <div className="filter-menu">
+                  {PERIODOS.map((p) => (
+                    <button
+                      key={p}
+                      className={`filter-menu-item${filterPeriodo === p ? ' active' : ''}`}
+                      onClick={() => { setFilterPeriodo(p); setShowPeriodoMenu(false); }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="filter-dropdown-wrap">
               <button className="filter-btn" onClick={() => setShowTipoMenu(!showTipoMenu)}>
                 Tipo de Reunião

@@ -76,6 +76,7 @@
   transition: background 0.15s;
 }
 .filter-btn:hover { background: var(--bg-main); color: var(--text-primary); }
+.filter-btn-active { background: #eff6ff; color: var(--primary-color); border-color: var(--primary-color); }
 
 .filter-dropdown-wrap {
   position: relative;
