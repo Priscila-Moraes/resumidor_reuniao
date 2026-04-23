@@ -35,7 +35,7 @@ Analise a transcrição abaixo e extraia as informações em formato JSON estrit
 
 Retorne EXATAMENTE este JSON:
 {
-  "tipo_reuniao": "Um de: Equipe | Vendas | Projeto | Planejamento | Feedback | Cliente | Outro",
+  "tipo_reuniao": "Categoria + nome curto no formato 'Categoria / Nome'. Categoria deve ser uma de: Equipe | Vendas | Projeto | Planejamento | Feedback | Cliente | Outro. Nome é um subtítulo descritivo de 2-4 palavras sobre o assunto. Ex: 'Cliente / Tráfego e Leads', 'Equipe / Weekly Sync', 'Projeto / Lançamento App'",
   "objetivo": "Uma frase objetiva descrevendo o propósito da reunião",
   "resumo_executivo": "2 a 3 parágrafos resumindo o contexto, discussões e resultados da reunião",
   "topicos_discutidos": ["Tópico 1", "Tópico 2", "Tópico 3"],

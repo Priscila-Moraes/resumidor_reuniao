@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
   const filtered = meetings.filter((m) => {
     const matchSearch = m.titulo.toLowerCase().includes(search.toLowerCase()) ||
       (m.resumo_executivo || m.resumo || '').toLowerCase().includes(search.toLowerCase());
-    const matchTipo = filterTipo === 'Todos' || m.tipo_reuniao === filterTipo;
+    const matchTipo = filterTipo === 'Todos' || (m.tipo_reuniao || '').split('/')[0].trim() === filterTipo;
     const matchPeriodo = isInPeriodo(m.data);
     return matchSearch && matchTipo && matchPeriodo;
   });
