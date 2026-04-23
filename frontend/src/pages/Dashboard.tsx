@@ -145,7 +145,12 @@ const Dashboard: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await supabase.from('meetings').delete().eq('id', deleteTarget);
+    const { error } = await supabase.from('meetings').delete().eq('id', deleteTarget);
+    if (error) {
+      toast.error('Erro ao excluir reunião. Tente novamente.');
+      setDeleteTarget(null);
+      return;
+    }
     setMeetings((prev) => prev.filter((m) => m.id !== deleteTarget));
     setDeleteTarget(null);
     toast.success('Reunião excluída.');
