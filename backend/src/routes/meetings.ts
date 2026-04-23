@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabase } from '../services/supabaseClient';
-import { fetchFirefliesTranscript } from '../services/firefliesService';
+import { fetchFirefliesTranscript, listFirefliesTranscripts } from '../services/firefliesService';
 import { analyzeMeetingTranscript } from '../services/aiService';
 
 const router = Router();
@@ -19,6 +19,90 @@ async function getUserProfile(authHeader: string | undefined) {
 
   return profile ?? null;
 }
+
+// POST /api/meetings/sync-fireflies — importa reuniões recentes da conta Fireflies
+router.post('/sync-fireflies', async (req: Request, res: Response) => {
+  const profile = await getUserProfile(req.headers.authorization);
+  if (!profile) return res.status(401).json({ error: 'Token inválido ou expirado' });
+  if (!profile.fireflies_api_key) return res.status(400).json({ error: 'Configure sua chave do Fireflies nas configurações' });
+  if (!profile.openai_api_key) return res.status(400).json({ error: 'Configure sua chave da OpenAI nas configurações' });
+
+  try {
+    const transcripts = await listFirefliesTranscripts(profile.fireflies_api_key);
+
+    const { data: existing } = await supabase
+      .from('meetings')
+      .select('fireflies_id')
+      .eq('user_id', profile.id)
+      .not('fireflies_id', 'is', null);
+
+    const existingIds = new Set((existing || []).map((m: any) => m.fireflies_id));
+    const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
+
+    if (newTranscripts.length === 0) {
+      return res.json({ success: true, imported: 0 });
+    }
+
+    const inserts = newTranscripts.map((t) => ({
+      user_id: profile.id,
+      titulo: t.title || 'Reunião sem título',
+      data: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
+      status: 'processando',
+      fireflies_id: t.id,
+      duration: t.duration || null,
+    }));
+
+    const { data: newMeetings, error: insertError } = await supabase
+      .from('meetings')
+      .insert(inserts)
+      .select('id, fireflies_id, titulo');
+
+    if (insertError || !newMeetings) {
+      return res.status(500).json({ error: 'Erro ao importar reuniões' });
+    }
+
+    res.json({ success: true, imported: newMeetings.length });
+
+    // Processa cada reunião nova em background
+    for (const meeting of newMeetings) {
+      (async () => {
+        try {
+          const result = await fetchFirefliesTranscript(meeting.fireflies_id, profile.fireflies_api_key || undefined);
+          const analysis = await analyzeMeetingTranscript(result.text, profile.openai_api_key);
+
+          await supabase
+            .from('meetings')
+            .update({
+              titulo: analysis.titulo || meeting.titulo,
+              tipo_reuniao: analysis.tipo_reuniao,
+              objetivo: analysis.objetivo,
+              resumo_executivo: analysis.resumo_executivo,
+              topicos_discutidos: analysis.topicos_discutidos,
+              decisoes: analysis.decisoes,
+              itens_acao: analysis.itens_acao,
+              pendencias: analysis.pendencias,
+              aproveitamento_nota: analysis.aproveitamento_nota,
+              aproveitamento_motivo: analysis.aproveitamento_motivo,
+              aproveitamento_criterios: analysis.aproveitamento_criterios,
+              transcript: result.transcript,
+              transcricao_bruta: result.text,
+              duration: result.duration,
+              status: 'concluido',
+            })
+            .eq('id', meeting.id);
+
+          console.log(`Sync: reunião ${meeting.id} processada.`);
+        } catch (err: any) {
+          console.error(`Sync: erro ao processar ${meeting.id}:`, err.message);
+          await supabase.from('meetings').update({ status: 'erro' }).eq('id', meeting.id);
+        }
+      })();
+    }
+
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Erro ao sincronizar com Fireflies' });
+  }
+});
 
 // POST /api/meetings/process — processa manualmente pelo Transcript ID
 router.post('/process', async (req: Request, res: Response) => {

@@ -2,6 +2,41 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
+export interface FirefliesTranscriptSummary {
+  id: string;
+  title: string;
+  date: number;
+  duration: number;
+}
+
+export const listFirefliesTranscripts = async (
+  apiKey: string,
+  limit = 50,
+): Promise<FirefliesTranscriptSummary[]> => {
+  const query = `
+    query {
+      transcripts(limit: ${limit}) {
+        id
+        title
+        date
+        duration
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      'https://api.fireflies.ai/graphql',
+      { query },
+      { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } },
+    );
+    return response.data?.data?.transcripts || [];
+  } catch (error) {
+    console.error('Error listing Fireflies transcripts', error);
+    throw new Error('Failed to list transcripts from Fireflies.');
+  }
+};
+
 export interface FirefliesTranscriptData {
   id: string;
   title: string;

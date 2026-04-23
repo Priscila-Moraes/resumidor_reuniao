@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send } from 'lucide-react';
+import { Search, Clock, Trash2, Loader2, RefreshCw, Calendar, ChevronDown, Send, CloudDownload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -52,6 +52,7 @@ const Dashboard: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchMeetings = async () => {
@@ -132,6 +133,30 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleSyncFireflies = async () => {
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+      const res = await fetch(`${BACKEND_URL}/api/meetings/sync-fireflies`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro ao sincronizar');
+      if (json.imported === 0) {
+        toast.info('Nenhuma reunião nova encontrada no Fireflies.');
+      } else {
+        toast.success(`${json.imported} reunião(ões) importada(s) e sendo processada(s)!`);
+      }
+      await fetchMeetings();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao sincronizar com Fireflies');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     await supabase.from('meetings').delete().eq('id', deleteTarget);
@@ -175,7 +200,13 @@ const Dashboard: React.FC = () => {
 
         {/* Header com título + filtros */}
         <div className="dashboard-header">
-          <h1 className="page-title">Painel de Reuniões</h1>
+          <div className="dashboard-title-row">
+            <h1 className="page-title">Painel de Reuniões</h1>
+            <button className="btn-sync" onClick={handleSyncFireflies} disabled={syncing} title="Importar reuniões recentes do Fireflies">
+              {syncing ? <Loader2 size={15} className="status-spinner" /> : <CloudDownload size={15} />}
+              {syncing ? 'Sincronizando...' : 'Sincronizar Fireflies'}
+            </button>
+          </div>
           <div className="dashboard-filters">
             <div className="search-bar">
               <Search size={16} className="search-icon" />
